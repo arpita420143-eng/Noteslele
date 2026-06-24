@@ -5,88 +5,138 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MKS Study System - Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Video Player Libraries for m3u8 (Live) and mpd -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
 </head>
 <body>
 
     <header>
         <h1>MKS STUDY SYSTEM</h1>
         <p>🚀 Chapter-wise Daily DPP, Notes & Video Lectures</p>
+        
+        <!-- Social Media Links -->
+        <div class="social-links">
+            <a href="https://t.me/MKSsports_3" target="_blank" class="glow-btn tele-btn">✈️ Telegram</a>
+            <a href="https://youtube.com/@mkssports3?si=K5yZggLbXBUZElG0" target="_blank" class="glow-btn yt-btn">▶️ Main YT</a>
+            <a href="https://youtube.com/@mkssports03?si=Tm9vdwXijaAlbVOh" target="_blank" class="glow-btn yt-btn">▶️ Backup YT</a>
+        </div>
     </header>
 
     <div class="main-container">
+        <!-- SIDEBAR -->
         <div class="chapter-sidebar">
+            <h3>🔥 Live Exams</h3>
+            <button class="chap-btn daily-btn active" onclick="changeChapter(event, 'daily-dpp')">🎯 Daily NEET/OUAT DPP</button>
+            
+            <hr style="border-color: #333; margin: 15px 0;">
+            
             <h3>📖 Chapters</h3>
-            <button class="chap-btn active" onclick="changeChapter(event, 'chapter1')">Chapter 1: Units & Dimensions</button>
+            <button class="chap-btn" onclick="changeChapter(event, 'chapter1')">Chapter 1: Units & Dimensions</button>
             <button class="chap-btn" onclick="changeChapter(event, 'chapter2')">Chapter 2: Electrostatics</button>
-            <button class="chap-btn" onclick="changeChapter(event, 'chapter3')">Chapter 3: Calculus Basic</button>
         </div>
 
+        <!-- CONTENT AREA -->
         <div class="content-area">
             
-            <div id="chapter1" class="chapter-content active-content">
-                <h2>Chapter 1: Units & Dimensions</h2>
-                <div class="card-grid">
-                    <div class="card video-card">
-                        <h3>📹 Video Lecture</h3>
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
+            <!-- DAILY DPP SECTION (By default open rahega) -->
+            <div id="daily-dpp" class="chapter-content active-content">
+                <h2 style="color: #ff0077; text-shadow: 0 0 10px #ff0077;">🎯 Daily Mock Test (NEET & OUAT)</h2>
+                
+                <div class="card dpp-card" style="border: 1px solid #ff0077; box-shadow: 0 0 15px rgba(255, 0, 119, 0.1);">
+                    <h3>⏳ Today's Live Exam (20 Mins)</h3>
+                    <p>Rozana naye questions practice karein! Start par click karte hi timer chalu hoga.</p>
+                    
+                    <div id="daily-start-sec">
+                        <button onclick="startDailyExam()" class="glow-btn" style="background: linear-gradient(45deg, #ff0077, #aa00ff); box-shadow: 0 0 15px #ff0077;">🚀 Start Today's Exam</button>
+                    </div>
+
+                    <div id="daily-exam-sec" style="display: none; margin-top: 15px;">
+                        <h4 style="color: #ff3366; font-size: 1.5rem; text-align: center; margin-bottom: 10px;">Time Left: <span id="daily-timer">20:00</span></h4>
+                        
+                        <div class="quiz-box" style="text-align: center;">
+                            <h3 style="color: #00ffcc; margin-bottom: 15px;">Exam is Live!</h3>
+                            <p>Apni notebook aur pen ready rakhein. Aaj ka paper niche view karein aur solve karein.</p>
+                            <!-- Yahan aaj ka PDF khulega -->
+                            <a href="today_dpp.pdf" target="_blank" class="glow-btn small-btn">👁️ View Question Paper</a>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button onclick="submitDailyExam()" class="glow-btn" style="background: #28a745; box-shadow: 0 0 15px #28a745;">✅ Submit Test</button>
                         </div>
                     </div>
-                    <div class="card">
-                        <h3>📚 Premium Notes</h3>
-                        <p>Is chapter ke detailed hand-written notes download karein.</p>
-                        <a href="notes_ch1.pdf" target="_blank" class="glow-btn">👁️ View Notes</a>
-                    </div>
-                    <div class="card">
-                        <h3>📝 Daily DPP</h3>
-                        <p>Aaj ka practice set solve karein aur score check karein.</p>
-                        <a href="OUAT_2026_Practice_Paper.pdf" download class="glow-btn">📥 Download DPP</a>
+
+                    <div id="daily-result-sec" style="display: none; margin-top: 15px; border-top: 1px solid #444; padding-top: 15px; text-align: center;">
+                        <h3 style="color: #00ffcc;">🎉 Well Done! Exam Completed.</h3>
+                        <p style="margin-bottom: 15px;">Aap apna test paper aur answers yahan se download kar sakte hain.</p>
+                        <!-- Yahan se direct PDF download hoga -->
+                        <a href="today_dpp.pdf" download="MKS_Daily_DPP.pdf" class="glow-btn">📥 Download Today's PDF</a>
                     </div>
                 </div>
             </div>
 
+            <!-- CHAPTER 1 SECTION -->
+            <div id="chapter1" class="chapter-content">
+                <h2>Chapter 1: Units & Dimensions</h2>
+                
+                <div class="card-grid">
+                    <!-- Video Card -->
+                    <div class="card video-card">
+                        <h3>📹 Video Lecture (Multi-Format)</h3>
+                        <div class="video-controls">
+                            <button onclick="playVideo('youtube', 'https://www.youtube.com/embed/dQw4w9WgXcQ')" class="glow-btn small-btn">YouTube</button>
+                            <button onclick="playVideo('mp4', 'https://www.w3schools.com/html/mov_bbb.mp4')" class="glow-btn small-btn">MP4</button>
+                            <button onclick="playVideo('m3u8', 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8')" class="glow-btn small-btn">M3U8 (Live)</button>
+                        </div>
+                        <div class="video-container">
+                            <iframe id="yt-player-ch1" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
+                            <video id="html-player-ch1" controls style="display:none; width:100%; height:100%; position:absolute; top:0; left:0;"></video>
+                        </div>
+                    </div>
+
+                    <!-- Notes Card -->
+                    <div class="card">
+                        <h3>📚 Premium Notes</h3>
+                        <p>Is chapter ke detailed notes padhein ya download karein.</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <!-- Chapter 1 notes link -->
+                            <a href="notes_ch1.pdf" target="_blank" class="glow-btn">👁️ View Notes</a>
+                            <a href="notes_ch1.pdf" download="Chapter1_Notes.pdf" class="glow-btn">📥 Download</a>
+                        </div>
+                    </div>
+
+                    <!-- Chapter DPP Card -->
+                    <div class="card dpp-card">
+                        <h3>📝 Chapter DPP (15 Mins)</h3>
+                        <p>Download link tabhi open hoga jab test complete karenge!</p>
+                        
+                        <div id="dpp-start-sec">
+                            <button onclick="startExam()" class="glow-btn">⏳ Start 15 Min Exam</button>
+                        </div>
+
+                        <div id="dpp-exam-sec" style="display: none; margin-top: 15px;">
+                            <h4 style="color: #ff3366;">Time Left: <span id="timer">15:00</span></h4>
+                            <div class="quiz-box">
+                                <p>Test start ho chuka hai. Questions solve karein.</p>
+                                <a href="dpp_ch1.pdf" target="_blank" class="glow-btn small-btn" style="margin-top:10px;">👁️ View DPP</a>
+                            </div>
+                            <button onclick="submitExam()" class="glow-btn" style="margin-top: 15px; background: #28a745; box-shadow: 0 0 15px #28a745;">✅ Submit Exam</button>
+                        </div>
+
+                        <div id="dpp-result-sec" style="display: none; margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+                            <h3 style="color: #00ffcc;">🎉 Exam Cleared!</h3>
+                            <!-- Chapter 1 DPP download link -->
+                            <a href="dpp_ch1.pdf" download="Chapter1_DPP.pdf" class="glow-btn">📥 Download DPP PDF</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHAPTER 2 SECTION (Blank format for you to use) -->
             <div id="chapter2" class="chapter-content">
                 <h2>Chapter 2: Electrostatics</h2>
-                <div class="card-grid">
-                    <div class="card video-card">
-                        <h3>📹 Video Lecture</h3>
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/placeholder2" frameborder="0" allowfullscreen></iframe>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h3>📚 Premium Notes</h3>
-                        <p>Electrostatics ke best formula sheets aur notes.</p>
-                        <a href="notes_ch2.pdf" target="_blank" class="glow-btn">👁️ View Notes</a>
-                    </div>
-                    <div class="card">
-                        <h3>📝 Daily DPP</h3>
-                        <p>Electrostatics Top 20 Most Important Questions.</p>
-                        <a href="dpp_ch2.pdf" download class="glow-btn">📥 Download DPP</a>
-                    </div>
-                </div>
-            </div>
-
-            <div id="chapter3" class="chapter-content">
-                <h2>Chapter 3: Calculus Basic</h2>
-                <div class="card-grid">
-                    <div class="card video-card">
-                        <h3>📹 Video Lecture</h3>
-                        <div class="video-container">
-                            <iframe src="https://www.youtube.com/embed/placeholder3" frameborder="0" allowfullscreen></iframe>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h3>📚 Premium Notes</h3>
-                        <p>Calculus basic concepts aur short tricks notes.</p>
-                        <a href="notes_ch3.pdf" target="_blank" class="glow-btn">👁️ View Notes</a>
-                    </div>
-                    <div class="card">
-                        <h3>📝 Daily DPP</h3>
-                        <p>Calculus practice questions sheet.</p>
-                        <a href="dpp_ch3.pdf" download class="glow-btn">📥 Download DPP</a>
-                    </div>
-                </div>
+                <div class="card"><p>Yahan par Chapter 1 jaisa code copy-paste karke use kar sakte ho baad me.</p></div>
             </div>
 
         </div>
