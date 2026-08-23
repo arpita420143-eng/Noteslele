@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MKS WEB</title>
+    <title>MKS Web Player</title>
     
     <style>
         /* Yeh thoda design hai taaki iframe poori screen cover kare */
@@ -12,6 +12,7 @@
             padding: 0;
             height: 100%;
             overflow: hidden; /* Extra scrollbars ko hide karne ke liye */
+            background-color: #000; /* Player ke background ko black rakhne ke liye */
         }
         
         .my-iframe {
@@ -23,8 +24,8 @@
 </head>
 <body>
 
-    <!-- Aapki website yahan embed ho rahi hai -->
-    <iframe class="my-iframe" src="https://tv4wab.wapka.site/index.html" allowfullscreen></iframe>
+    <!-- Aapka player yahan embed ho raha hai with permissions -->
+    <iframe class="my-iframe" src="https://tv4wab.wapka.site/index.html" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" frameborder="0"></iframe>
 
 </body>
 </html>
