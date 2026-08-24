@@ -125,24 +125,6 @@
         </div>
         <div id="mksStarList" class="category-list"></div>
 
-        <!-- 🌐 GEO PLUS JSON -->
-        <div class="section-heading" onclick="toggleCategory('geoList', 'iconGeo')">
-            <i class="fas fa-globe" style="color:var(--accent-primary);"></i> Geo Plus Channels <i id="iconGeo" class="fas fa-chevron-down" style="margin-left:auto;"></i>
-        </div>
-        <div id="geoList" class="category-list"></div>
-
-        <!-- 📺 BINGE JIOTV JSON -->
-        <div class="section-heading" onclick="toggleCategory('bingeList', 'iconBinge')">
-            <i class="fas fa-tv" style="color:var(--accent-primary);"></i> Binge JioTV <i id="iconBinge" class="fas fa-chevron-down" style="margin-left:auto;"></i>
-        </div>
-        <div id="bingeList" class="category-list"></div>
-
-        <!-- 🏏 SONU SPORTS JSON -->
-        <div class="section-heading" onclick="toggleCategory('sonuList', 'iconSonu')">
-            <i class="fas fa-volleyball-ball" style="color:var(--accent-primary);"></i> Sonu Sports <i id="iconSonu" class="fas fa-chevron-down" style="margin-left:auto;"></i>
-        </div>
-        <div id="sonuList" class="category-list"></div>
-
     </div>
     <!-- === JAVASCRIPT === -->
     <script>
@@ -228,40 +210,6 @@
 
             const proxyBase = "https://mkscricket.mks-cricket.workers.dev/?url=";
             
-            const fetchJSON = async (url, listId) => {
-                try {
-                    let response = await fetch(proxyBase + encodeURIComponent(url));
-                    let data = await response.json();
-                    
-                    let items = Array.isArray(data) ? data : (data.channels || data.data || Object.values(data));
-                    const targetList = document.getElementById(listId);
-
-                    items.forEach(item => {
-                        if (typeof item === 'object' && (item.name || item.title || item.channel_name)) {
-                            let mappedCh = {
-                                name: item.name || item.title || item.channel_name || "Unknown",
-                                icon: item.logo || item.icon || item.image || "fas fa-play-circle",
-                                url: item.url || item.link || item.stream_url || item.m3u8 || "",
-                                kid: item.kid || item.keyId || item.clearkey_id || "",
-                                key: item.key || item.clearkey_hex || "",
-                                type: (item.url && item.url.includes('.mpd')) ? 'dash' : 'hls'
-                            };
-
-                            if(item.clearKeys && typeof item.clearKeys === 'object') {
-                                mappedCh.kid = Object.keys(item.clearKeys)[0];
-                                mappedCh.key = Object.values(item.clearKeys)[0];
-                            }
-                            
-                            if (mappedCh.url) targetList.appendChild(createChannelCard(mappedCh));
-                        }
-                    });
-                } catch(e) { console.error("Error loading JSON: ", url); }
-            };
-
-            fetchJSON("https://raw.githubusercontent.com/qwerty180506/json/refs/heads/main/Geoplus.json", "geoList");
-            fetchJSON("https://binge-giotv.pages.dev/data/id.json", "bingeList");
-            fetchJSON("https://sonujson-v3.pages.dev/Data/sports.json", "sonuList");
-            
             // 🔥 LOAD SONY & STAR LIVE APIs HERE 🔥
             const sonyJsonUrl = atob('aHR0cHM6Ly9hbGxpbm9uZXJlYm9ybjIub25saW5lL3Nvbnkvc2xpdjMuanNvbg==');
             const starJsonUrl = atob('aHR0cHM6Ly9qdHZ4d2ViLnBhZ2VzLmRldi9qc3RyNHdlYi5qc29u');
@@ -273,7 +221,7 @@
                     for (const key in data) {
                         let item = data[key];
                         if(item.title || item.name) {
-                            let mappedData = { name: item.title || item.name, icon: item.logo || "fas fa-satellite-dish", url: item.url || item.link || "", id: item.id, isSonyAPI: true };
+                            let mappedData = { name: item.title || item.name, icon: item.logo || "fas fa-shield-alt", url: item.url || item.link || "", id: item.id, isSonyAPI: true };
                             tvList.appendChild(createChannelCard(mappedData));
                         }
                     }
@@ -371,7 +319,7 @@
                 const container = document.getElementById('shaka-container');
 
                 shaka.polyfill.installAll();
-          shakaPlayerInstance = new shaka.Player(video);
+                shakaPlayerInstance = new shaka.Player(video);
                 
                 shakaUIInstance = new shaka.ui.Overlay(shakaPlayerInstance, container, video);
                 shakaUIInstance.configure({ addSeekBar: true, controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'quality', 'fullscreen'] });
@@ -409,8 +357,7 @@
                     hlsInstance = new Hls();
                     hlsInstance.loadSource(url);
                     hlsInstance.attachMedia(video);
-                    
-                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+         hlsInstance.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
                         video.play();
                         const qBox = document.getElementById('qualityBox');
                         if (data.levels && data.levels.length > 0) {
