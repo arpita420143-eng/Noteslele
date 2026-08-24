@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MKS Sports - Premium</title>
     
-    <!-- Video Player Engines (Shaka Player + HLS.js) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.min.js"></script>
+    <!-- Premium Video Player Engines & UI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/controls.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <style>
@@ -134,7 +135,7 @@
             { title: "Zee Anmol", logo: "https://via.placeholder.com/120x60/000/FFF?text=ZEE+ANMOL", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeeanmol/default/manifest.mpd", keyId: "4023613457774cbeb71a62c339970e63", key: "1c3e9fce5f014542be9cd1f749181204", sourceType: "custom" }
         ];
 
-        // --- 4. FETCH API DATA (Sony & Star Only) ---
+        // --- 4. FETCH API DATA (Sony & Star) ---
         const proxyBase = "https://mkscricket.mks-cricket.workers.dev/"; 
         const sonyJsonUrl = atob('aHR0cHM6Ly9hbGxpbm9uZXJlYm9ybjIub25saW5lL3Nvbnkvc2xpdjMuanNvbg==');
         const starJsonUrl = atob('aHR0cHM6Ly9qdHZ4d2ViLnBhZ2VzLmRldi9qc3RyNHdlYi5qc29u');
@@ -149,18 +150,14 @@
                 if (list) list.appendChild(createChannelCard(channelData));
             };
 
-            // Load MKS Exclusives
             topExclusiveChannels.forEach(ch => appendChannel('mksExclusiveList', ch));
-
-            // Load Sony
             for (const key in sonyData) { let ch = sonyData[key]; if (ch.title || ch.name) { ch.sourceType = 'sony'; appendChannel('mksTvList', ch); } }
-            
-            // Load Star
             for (const key in starData) { let ch = starData[key]; if (ch.title || ch.name) { ch.sourceType = 'star'; appendChannel('mksStarList', ch); } }
         });
 
         // --- 5. PLAYER VARIABLES ---
         let shakaPlayerInstance = null; 
+        let shakaUIInstance = null;
         let hlsInstance = null;
 
         // --- 6. CREATE CHANNEL CARDS ---
@@ -173,7 +170,6 @@
             const card = document.createElement('div');
             card.className = 'channel-card';
             
-            // CLEAN LOGO FALLBACK: Shows Channel Title if image fails or doesn't exist
             let logoHtml = chLogo 
                 ? `<img src="${chLogo}" class="channel-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                    <div class="logo-fallback">${chTitle}</div>` 
@@ -191,11 +187,12 @@
                 const vBox = document.getElementById('videoBox');
                 document.getElementById('loading-spinner').style.display = "block";
                 
-                // Destroy old players
+                // Clear old players safely
+                if (shakaUIInstance) { shakaUIInstance.destroy(); shakaUIInstance = null; }
                 if (shakaPlayerInstance) { shakaPlayerInstance.destroy(); shakaPlayerInstance = null; }
                 if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
                 
-                vBox.innerHTML = ""; // Clear Box
+                vBox.innerHTML = "";
 
                 setTimeout(() => {
                     document.getElementById('loading-spinner').style.display = "none";
@@ -216,30 +213,51 @@
             return card;
         }
 
-        // --- 7. NATIVE PLAYER LOGIC (No Iframe needed for Exclusives) ---
+        // --- 7. PREMIUM NATIVE PLAYER (WITH QUALITY SETTINGS) ---
         async function startNativePlayer(url, keyId, key) {
             const vBox = document.getElementById('videoBox');
+            
+            // Re-creating the video container completely for Shaka UI
             vBox.innerHTML = `
                 <div class="ad-warning">💎 PREMIUM MKS STREAM (Ad-Free)</div>
-                <video id="nativePlayer" controls autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>
+                <div id="shaka-container" style="width:100%; height:100%; position:relative;">
+                    <video id="nativePlayer" autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>
+                </div>
             `;
             const video = document.getElementById('nativePlayer');
+            const container = document.getElementById('shaka-container');
 
-            // 1. DRM Protected (Zee Channels, Discovery, etc)
+            // 1. DRM Protected Streams (Zee Sarthak, etc) -> Gives Settings/Quality Gear
             if (keyId && key) {
+                // Disable browser default controls because Shaka UI will handle it
+                video.removeAttribute("controls"); 
+                
                 shaka.polyfill.installAll();
                 shakaPlayerInstance = new shaka.Player(video);
+                
+                // Install Premium Shaka UI
+                shakaUIInstance = new shaka.ui.Overlay(shakaPlayerInstance, container, video);
+                const uiConfig = {
+                    addSeekBar: true,
+                    controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'quality', 'fullscreen']
+                };
+                shakaUIInstance.configure(uiConfig);
+
                 shakaPlayerInstance.configure({ drm: { clearKeys: { [keyId]: key } } });
+                
                 try {
                     await shakaPlayerInstance.load(url);
                     video.play();
                 } catch (e) {
                     console.error('DRM Error:', e);
-                    vBox.innerHTML = `<div style="color:red; text-align:center; padding-top:100px;">Key Expired or Stream Offline.</div>`;
+                    vBox.innerHTML = `<div style="color:red; text-align:center; padding-top:100px; font-weight:bold;">Key Expired or Stream Offline.</div>`;
                 }
             } 
-            // 2. M3U8 Links (Willow, Ten Cricket)
+            // 2. M3U8 Streams (Willow, Ten Cricket) -> No DRM needed
             else if (url.includes('.m3u8')) {
+                // HLS js uses native browser controls
+                video.setAttribute("controls", "controls");
+                
                 if (Hls.isSupported()) {
                     hlsInstance = new Hls();
                     hlsInstance.loadSource(url);
@@ -250,17 +268,6 @@
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
                     video.addEventListener('loadedmetadata', function() { video.play(); });
-                }
-            } 
-            // 3. Fallback
-            else {
-                shaka.polyfill.installAll();
-                shakaPlayerInstance = new shaka.Player(video);
-                try {
-                    await shakaPlayerInstance.load(url);
-                    video.play();
-                } catch (e) {
-                    vBox.innerHTML = `<div style="color:red; text-align:center; padding-top:100px;">Stream Load Error.</div>`;
                 }
             }
         }
