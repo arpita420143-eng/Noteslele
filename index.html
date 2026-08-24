@@ -10,76 +10,72 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <style>
-        /* === CSS DESIGN === */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f0f; color: #fff; margin: 0; padding: 15px; }
+        /* === PREMIUM CSS DESIGN === */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #fff; margin: 0; padding: 15px; }
         
         /* Video Player Area */
-        #videoBox { width: 100%; height: 260px; background: #000; margin: 15px 0; border-radius: 8px; border: 2px solid #ff9800; overflow: hidden; position: relative; }
-        #nowPlayingText { color: #ff9800; font-size: 16px; text-align: center; margin-bottom: 5px; font-weight: bold; }
-        .ad-warning { position: absolute; top: 0; left: 0; width: 100%; background: rgba(255, 0, 0, 0.9); color: white; text-align: center; font-size: 11px; padding: 4px; z-index: 10; font-weight: bold; }
+        #videoBox { width: 100%; height: 260px; background: #000; margin: 15px 0; border-radius: 10px; border: 2px solid #ff9800; overflow: hidden; position: relative; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.2); }
+        #nowPlayingText { color: #ff9800; font-size: 18px; text-align: center; margin-bottom: 5px; font-weight: bold; letter-spacing: 1px; }
+        .ad-warning { position: absolute; top: 0; left: 0; width: 100%; background: rgba(255, 0, 0, 0.9); color: white; text-align: center; font-size: 11px; padding: 5px; z-index: 10; font-weight: bold; letter-spacing: 1px; }
         
-        /* Quality Box */
-        #qualityBox { display: none; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin-bottom: 15px; }
-        .q-btn { background: rgba(255,152,0,0.1); border: 1px solid #ff9800; color: #fff; padding: 4px 10px; cursor: pointer; border-radius: 4px; font-size: 12px; }
-        .q-btn:hover { background: #ff9800; color: #000; font-weight: bold; }
-
-        /* Accordion */
-        h3 { cursor: pointer; background: #1f1f1f; padding: 12px 15px; border-radius: 6px; margin-top: 15px; display: flex; justify-content: space-between; border-left: 4px solid #ff9800; }
-        .category-list { display: none; padding: 10px 0; }
-        .category-list.active { display: block; }
+        /* Accordion UI */
+        h3 { cursor: pointer; background: #1a1a1a; padding: 15px; border-radius: 8px; margin-top: 20px; display: flex; justify-content: space-between; border-left: 4px solid #ff9800; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .category-list { display: none; padding: 15px 0; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .category-list.active { display: flex; }
         
         /* Channel Cards */
-        .channel-card { border: 1px solid #333; border-radius: 8px; padding: 10px; margin: 5px; cursor: pointer; display: inline-block; text-align: center; background: #1a1a1a; width: 130px; transition: 0.3s; vertical-align: top; }
-        .channel-card:hover { border-color: #ff9800; background: #2a2a2a; }
-        .channel-logo-container { position: relative; height: 60px; display: flex; justify-content: center; align-items: center; background: #222; border-radius: 4px; overflow: hidden; }
+        .channel-card { border: 1px solid #333; border-radius: 8px; padding: 10px; cursor: pointer; background: #111; width: calc(33% - 15px); min-width: 100px; max-width: 140px; transition: 0.3s; display: flex; flex-direction: column; align-items: center; }
+        .channel-card:hover { border-color: #ff9800; background: #222; transform: translateY(-2px); }
+        .channel-logo-container { position: relative; height: 50px; width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 8px; }
         .channel-logo { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .channel-title { font-size: 12px; margin-top: 8px; color: #ddd; font-weight: bold; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .channel-title { font-size: 11px; color: #ddd; font-weight: bold; text-align: center; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         
-        /* Splash Screen */
-        #splash-screen { position: fixed; top:0; left:0; width: 100%; height: 100%; background: #0a0a0a; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; transition: opacity 0.5s; }
-        #fingerprint-prompt { font-size: 20px; cursor: pointer; padding: 20px; background: #1f1f1f; border-radius: 50%; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; border: 2px solid #ff9800; text-align: center; }
+        /* Clean Logo Fallback */
+        .logo-fallback { display: none; color: #ff9800; font-weight: bold; font-size: 13px; text-align: center; width: 100%; white-space: normal; line-height: 1.2; }
+
+        /* Splash Screen & PIN */
+        #splash-screen { position: fixed; top:0; left:0; width: 100%; height: 100%; background: #050505; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; transition: opacity 0.5s; }
+        #fingerprint-prompt { font-size: 22px; cursor: pointer; padding: 20px; background: #1a1a1a; border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px solid #ff9800; text-align: center; color: #ff9800; font-weight: bold; box-shadow: 0 0 20px rgba(255,152,0,0.2); }
         #password-box { text-align: center; display: none; }
-        #passInput { padding: 10px; font-size: 16px; border: 1px solid #444; background: #222; color: #fff; border-radius: 5px; margin-bottom: 10px; text-align: center; outline: none; }
-        #authBtn { padding: 10px 20px; background: #ff9800; color: #000; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        #errorMsg { color: #ff4444; margin-top: 10px; display: none; font-weight: bold; }
+        #passInput { padding: 12px; font-size: 18px; border: 2px solid #333; background: #111; color: #ff9800; border-radius: 8px; margin-bottom: 15px; text-align: center; outline: none; font-weight: bold; letter-spacing: 2px; }
+        #passInput:focus { border-color: #ff9800; }
+        #authBtn { padding: 12px 30px; background: #ff9800; color: #000; border: none; font-weight: bold; font-size: 16px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        #authBtn:hover { background: #e68a00; }
+        #errorMsg { color: #ff4444; margin-top: 15px; display: none; font-weight: bold; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 5px; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="locked">
 
     <!-- === SPLASH SCREEN === -->
     <div id="splash-screen">
-        <div id="fingerprint-prompt" onclick="showPasswordBox()">👆<br>Tap</div>
+        <div id="fingerprint-prompt" onclick="showPasswordBox()">👆<br>TAP TO<br>UNLOCK</div>
         <div id="password-box">
             <input type="password" id="passInput" placeholder="Enter PIN">
             <br>
             <button id="authBtn" onclick="checkPassword()">ENTER</button>
-            <div id="errorMsg">Wrong PIN!</div>
+            <div id="errorMsg">Wrong PIN! Access Denied.</div>
         </div>
     </div>
 
     <!-- === VIDEO PLAYER AREA === -->
     <div id="nowPlayingText">Select a Channel to Play</div>
     
-    <!-- Quality Selector Box -->
-    <div id="qualityBox"></div>
-    
-    <div id="loading-spinner" style="text-align:center; color:#ff9800; margin-bottom:10px; display:none;">Loading Player...</div>
+    <div id="loading-spinner" style="text-align:center; color:#ff9800; margin-bottom:10px; display:none; font-weight:bold;">Loading Player...</div>
     <div id="videoBox">
-        <div style="color:#555; text-align:center; padding-top:100px;">Player will load here</div>
+        <div style="color:#555; text-align:center; padding-top:100px; font-weight:bold;">Player will load here</div>
     </div>
 
     <!-- === SECTIONS === -->
-    <h3 onclick="toggleCategory('mksExclusiveList', 'iconPrem')">💎 MKS Premium & Backup <span id="iconPrem">▼</span></h3>
+    <h3 onclick="toggleCategory('mksExclusiveList', 'iconPrem')">💎 MKS Premium Exclusives <span id="iconPrem">▼</span></h3>
     <div id="mksExclusiveList" class="category-list active"></div>
 
     <h3 onclick="toggleCategory('mksTvList', 'iconSony')">📺 Sony Channels <span id="iconSony">▼</span></h3>
-    <div id="mksTvList" class="category-list"></div>
+    <div id="mksTvList" class="category-list hidden"></div>
 
     <h3 onclick="toggleCategory('mksStarList', 'iconStar')">⭐ Star Channels <span id="iconStar">▼</span></h3>
-    <div id="mksStarList" class="category-list"></div>
-
-    <h3 onclick="toggleCategory('fancodeList', 'iconFan')">🏏 Live Matches (Fancode) <span id="iconFan">▼</span></h3>
-    <div id="fancodeList" class="category-list"></div>
+    <div id="mksStarList" class="category-list hidden"></div>
 
     <!-- === JAVASCRIPT === -->
     <script>
@@ -91,6 +87,7 @@
         window.showPasswordBox = function() { 
             document.getElementById("fingerprint-prompt").style.display = "none"; 
             document.getElementById("password-box").style.display = "block"; 
+            document.getElementById("passInput").focus();
         };
 
         window.checkPassword = function() {
@@ -112,149 +109,106 @@
             const list = document.getElementById(listId);
             const icon = document.getElementById(iconId);
             if (!list) return;
-            if (list.classList.contains('active')) {
-                list.classList.remove('active');
-                icon.innerText = "▼";
-            } else {
-                list.classList.add('active');
+            if (list.classList.contains('hidden')) {
+                list.classList.remove('hidden');
                 icon.innerText = "▲";
+            } else {
+                list.classList.add('hidden');
+                icon.innerText = "▼";
             }
         };
 
         // --- 3. CHANNEL DATA ---
         const topExclusiveChannels = [
-            { title: "Willow TV", url: "https://amg01269-amg01269c1-sportstribal-emea-5204.playouts.now.amagi.tv/ts-eu-w1-n2/playlist/amg01269-willowtvfast-willowplus-sportstribalemea/playlist.m3u8", sourceType: "custom" },
-            { title: "Ten Cricket HD", url: "https://stream.ottplus.live/live/ten_cricket_hd_abr/live/ten_cricket_hd_720/chunks.m3u8", sourceType: "custom" },
-            { title: "Zee Sarthak", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeesarthak/default/devil.mpd", keyId: "ecad0b097b574078a4a1bde24bfdb2e5", key: "568bb13d04db4b738864f6c849474cd5", sourceType: "custom" },
-            { title: "Zee TV", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeetv/default/manifest.mpd", keyId: "ed068cf84f0640ccbc7c0e395c0a272e", key: "bb722190f2bb446391020411a7d0828b", sourceType: "custom" },
-            { title: "Zee Bollywood", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeebollywood/default/manifest.mpd", keyId: "e61523260c614746b25b9a5523fe9a39", key: "72ddbf37f76f49acbb8e140e7279e7a1", sourceType: "custom" }
+            { title: "Willow TV", logo: "https://via.placeholder.com/120x60/000/FFF?text=WILLOW+TV", url: "https://amg01269-amg01269c1-sportstribal-emea-5204.playouts.now.amagi.tv/ts-eu-w1-n2/playlist/amg01269-willowtvfast-willowplus-sportstribalemea/playlist.m3u8", sourceType: "custom" },
+            { title: "Ten Cricket HD", logo: "https://via.placeholder.com/120x60/000/FFF?text=TEN+CRICKET", url: "https://stream.ottplus.live/live/ten_cricket_hd_abr/live/ten_cricket_hd_720/chunks.m3u8", sourceType: "custom" },
+            { title: "Zee Sarthak", logo: "https://via.placeholder.com/120x60/000/FFF?text=ZEE+SARTHAK", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeesarthak/default/devil.mpd", keyId: "ecad0b097b574078a4a1bde24bfdb2e5", key: "568bb13d04db4b738864f6c849474cd5", sourceType: "custom" },
+            { title: "Zee TV", logo: "https://via.placeholder.com/120x60/000/FFF?text=ZEE+TV", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeetv/default/manifest.mpd", keyId: "ed068cf84f0640ccbc7c0e395c0a272e", key: "bb722190f2bb446391020411a7d0828b", sourceType: "custom" },
+            { title: "Zee Bollywood", logo: "https://via.placeholder.com/120x60/000/FFF?text=ZEE+BOLLYWOOD", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeebollywood/default/manifest.mpd", keyId: "e61523260c614746b25b9a5523fe9a39", key: "72ddbf37f76f49acbb8e140e7279e7a1", sourceType: "custom" },
+            { title: "&pictures", logo: "https://via.placeholder.com/120x60/000/FFF?text=%26PICTURES", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Andpictures/default/manifest.mpd", keyId: "8dea532cabfe4f71ba20f62310e7949f", key: "7a214a974e4f4d1d9bb66364d5f0cb92", sourceType: "custom" },
+            { title: "Discovery Science", logo: "https://via.placeholder.com/120x60/000/FFF?text=DISCOVERY+SCIENCE", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Discoveryscience2/default/manifest.mpd", keyId: "5458f45efedb4d6f8aa6ac76c85b621b", key: "dbf8a0a306a64525ba3012fd225370c0", sourceType: "custom" },
+            { title: "Discovery Kids", logo: "https://via.placeholder.com/120x60/000/FFF?text=DISCOVERY+KIDS", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Discoverykids2/default/manifest.mpd", keyId: "601f58d4b7094d2baf78c85d1d9cb6c9", key: "609e0cc03198455fa36fd2cc3e7f940d", sourceType: "custom" },
+            { title: "Korean Dramas", logo: "https://via.placeholder.com/120x60/000/FFF?text=KOREAN+DRAMAS", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Koreandramas2/default/manifest.mpd", keyId: "ed197e7253c04946903f03bad9afac91", key: "99ebb8683ea74b70a9fda1cbdc2cc1b4", sourceType: "custom" },
+            { title: "Zoom TV", logo: "https://via.placeholder.com/120x60/000/FFF?text=ZOOM+TV", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zoom2/default/manifest.mpd", keyId: "86edec9e3b7d4042a4d4a1ca14f847ee", key: "9def4315f0004019a3705bcb3cf30ca3", sourceType: "custom" },
+            { title: "Zee Anmol Cinema", logo: "https://via.placeholder.com/120x60/000/FFF?text=ZEE+ANMOL+CINEMA", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeeanmolcinema/default/manifest.mpd", keyId: "812411cba8bc42c79eb2b19cd78ad3f3", key: "468a0b8d3d5d42d8a5c41bb875390a74", sourceType: "custom" },
+            { title: "Zee Anmol", logo: "https://via.placeholder.com/120x60/000/FFF?text=ZEE+ANMOL", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeeanmol/default/manifest.mpd", keyId: "4023613457774cbeb71a62c339970e63", key: "1c3e9fce5f014542be9cd1f749181204", sourceType: "custom" }
         ];
 
-        const backupChannels = [
-            { title: "Star Sports 1 HD", url: "https://tv4wav.pages.dev/?app=cricketm3u8&id=110", sourceType: "tv4wap_direct" },
-            { title: "Star Sports 1 Hindi", url: "https://tv4wav.pages.dev/?app=crichd&id=starhindi", sourceType: "tv4wap_direct" },
-            { title: "Star Sports 2 HD", url: "https://tv4wav.pages.dev/?app=cricketm3u8&id=109", sourceType: "tv4wap_direct" },
-            { title: "Sony Ten 1", url: "https://tv4wav.pages.dev/?app=jiohd&id=33722", sourceType: "tv4wap_direct" }
-        ];
-
-        // --- 4. FETCH API DATA (Sony, Star, Fancode) ---
+        // --- 4. FETCH API DATA (Sony & Star Only) ---
         const proxyBase = "https://mkscricket.mks-cricket.workers.dev/"; 
         const sonyJsonUrl = atob('aHR0cHM6Ly9hbGxpbm9uZXJlYm9ybjIub25saW5lL3Nvbnkvc2xpdjMuanNvbg==');
         const starJsonUrl = atob('aHR0cHM6Ly9qdHZ4d2ViLnBhZ2VzLmRldi9qc3RyNHdlYi5qc29u');
-        const fancodeJsonUrl = atob('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2RvY3Rvci04dHJhbmdlL3p5cGh4OC9yZWZzL2hlYWRzL21haW4vZGF0YS9mYW5jb2RlLmpzb24=');
 
         Promise.all([
             fetch(proxyBase + "?url=" + encodeURIComponent(sonyJsonUrl)).then(res => res.json()).catch(() => ({})),
-            fetch(proxyBase + "?url=" + encodeURIComponent(starJsonUrl)).then(res => res.json()).catch(() => ({})),
-            fetch(fancodeJsonUrl).then(res => res.json()).catch(() => ({}))
-        ]).then(([sonyData, starData, fancodeData]) => {
+            fetch(proxyBase + "?url=" + encodeURIComponent(starJsonUrl)).then(res => res.json()).catch(() => ({}))
+        ]).then(([sonyData, starData]) => {
             
             const appendChannel = (listId, channelData) => {
                 const list = document.getElementById(listId);
                 if (list) list.appendChild(createChannelCard(channelData));
             };
 
+            // Load MKS Exclusives
             topExclusiveChannels.forEach(ch => appendChannel('mksExclusiveList', ch));
-            backupChannels.forEach(ch => appendChannel('mksExclusiveList', ch));
 
-            // FANCODE: Extracting Qualities
-            if (fancodeData && fancodeData.matches) {
-                fancodeData.matches.forEach(match => {
-                    const isLive = (match.streamingStatus || "").toUpperCase() === "STARTED";
-                    if (isLive && match.auto_streams && match.auto_streams.length > 0) {
-                        const streamObj = match.auto_streams[0];
-                        let qualitiesList = [];
-                        let masterUrl = streamObj.url || match.url || match.stream_url || "";
-                        if (masterUrl) qualitiesList.push({ res: "Auto", url: masterUrl });
-
-                        if (streamObj.auto) {
-                            const lines = streamObj.auto.split("\n");
-                            for (let i = 0; i < lines.length; i++) {
-                                if (lines[i].includes("RESOLUTION")) {
-                                    let resMatch = lines[i].match(/RESOLUTION=\d+x(\d+)/);
-                                    let qualityText = resMatch ? resMatch[1] + "p" : "Auto";
-                                    let qUrl = lines[i + 1] ? lines[i + 1].trim() : "";
-                                    if (qUrl.startsWith("http")) qualitiesList.push({ res: qualityText, url: qUrl });
-                                }
-                            }
-                        }
-                        
-                        let teamName = (match.team?.[0] && match.team?.[1]) ? `${match.team[0].name} vs ${match.team[1].name}` : match.title;
-                        appendChannel('fancodeList', { title: teamName, logo: match.image, url: qualitiesList[0].url, qualities: qualitiesList, sourceType: 'fancode' });
-                    }
-                });
-            }
-
+            // Load Sony
             for (const key in sonyData) { let ch = sonyData[key]; if (ch.title || ch.name) { ch.sourceType = 'sony'; appendChannel('mksTvList', ch); } }
+            
+            // Load Star
             for (const key in starData) { let ch = starData[key]; if (ch.title || ch.name) { ch.sourceType = 'star'; appendChannel('mksStarList', ch); } }
         });
 
         // --- 5. PLAYER VARIABLES ---
         let shakaPlayerInstance = null; 
         let hlsInstance = null;
-        let activeKeyId = "";
-        let activeKey = "";
-
-        // Called when a Quality Button is clicked
-        window.changeFcQuality = function(newUrl) {
-            startNativePlayer(newUrl, activeKeyId, activeKey);
-        };
 
         // --- 6. CREATE CHANNEL CARDS ---
         function createChannelCard(channel) {
             const chTitle = channel.title || channel.name || "MKS SPORTS";
-            const chLogo = channel.logo || channel.icon || "https://via.placeholder.com/120x60/222/FFF?text=SPORTS";
+            const chLogo = channel.logo || channel.icon || "";
             const chId = channel.id || channel.channel_id || "";
             const chUrl = channel.m3u8 || channel.url || channel.link || "";
 
             const card = document.createElement('div');
             card.className = 'channel-card';
             
-            // Clean Logo Setup
+            // CLEAN LOGO FALLBACK: Shows Channel Title if image fails or doesn't exist
+            let logoHtml = chLogo 
+                ? `<img src="${chLogo}" class="channel-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                   <div class="logo-fallback">${chTitle}</div>` 
+                : `<div class="logo-fallback" style="display:flex;">${chTitle}</div>`;
+
             card.innerHTML = `
-                <div class="channel-logo-container">
-                    <img src="${chLogo}" class="channel-logo" onerror="this.src='https://via.placeholder.com/120x60/222/FFF?text=SPORTS'">
-                </div>
+                <div class="channel-logo-container">${logoHtml}</div>
                 <div class="channel-title">${chTitle}</div>
             `;
 
             card.onclick = () => {
-                document.getElementById('nowPlayingText').innerText = chTitle;
+                document.getElementById('nowPlayingText').innerText = "Playing: " + chTitle;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
                 const vBox = document.getElementById('videoBox');
-                const qBox = document.getElementById('qualityBox');
                 document.getElementById('loading-spinner').style.display = "block";
                 
-                // Show Quality Buttons if available
-                if (channel.qualities && channel.qualities.length > 0) {
-                    qBox.style.display = "flex";
-                    qBox.innerHTML = `<span style="color: #ff9800; font-size: 11px; font-weight: 800;">⚙️ QUALITY:</span>` +
-                        channel.qualities.map(q => `<button onclick="changeFcQuality('${q.url}')" class="q-btn">${q.res}</button>`).join('');
-                } else {
-                    qBox.style.display = "none";
-                    qBox.innerHTML = "";
-                }
-
                 // Destroy old players
                 if (shakaPlayerInstance) { shakaPlayerInstance.destroy(); shakaPlayerInstance = null; }
                 if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+                
+                vBox.innerHTML = ""; // Clear Box
 
                 setTimeout(() => {
                     document.getElementById('loading-spinner').style.display = "none";
                     let baseAttributes = `style="border:none; width:100%; height:100%; display:block;" allow="autoplay; encrypted-media; fullscreen" allowfullscreen="true"`;
 
-                    if (channel.sourceType === 'tv4wap_direct') {
-                        vBox.innerHTML = `<div class="ad-warning">📺 MKS BACKUP PLAYER ACTIVE</div><iframe src="${chUrl}" ${baseAttributes}></iframe>`;
-                    } 
-                    else if (channel.sourceType === 'sony') {
-                        vBox.innerHTML = `<div class="ad-warning">📺 MKS TV PLAYER</div><iframe src="https://allinonereborn2.online/sony/ptest1.html?id=${channel.id}" ${baseAttributes}></iframe>`;
+                    if (channel.sourceType === 'sony') {
+                        vBox.innerHTML = `<div class="ad-warning">📺 MKS SONY PLAYER ACTIVE</div><iframe src="https://allinonereborn2.online/sony/ptest1.html?id=${channel.id}" ${baseAttributes}></iframe>`;
                     } 
                     else if (channel.sourceType === 'star') {
                         let fUrl = chUrl.includes('pind') ? chUrl : (`https://jtvxweb.pages.dev/pind?id=${chId}`);
-                        vBox.innerHTML = `<div class="ad-warning">⚠️ TAP FAST 2-3 TIMES ON PLAY BUTTON TO BYPASS ADS</div><iframe src="${fUrl}" ${baseAttributes}></iframe>`;
+                        vBox.innerHTML = `<div class="ad-warning">⚠️ TAP PLAY 2-3 TIMES TO BYPASS ADS</div><iframe src="${fUrl}" ${baseAttributes}></iframe>`;
                     } 
-                    else if (channel.sourceType === 'custom' || channel.sourceType === 'fancode') {
+                    else if (channel.sourceType === 'custom') {
                         startNativePlayer(chUrl, channel.keyId, channel.key);
                     }
                 }, 300);
@@ -262,22 +216,16 @@
             return card;
         }
 
-        // --- 7. NATIVE PLAYER LOGIC (No Iframe needed) ---
+        // --- 7. NATIVE PLAYER LOGIC (No Iframe needed for Exclusives) ---
         async function startNativePlayer(url, keyId, key) {
-            activeKeyId = keyId;
-            activeKey = key;
-            
             const vBox = document.getElementById('videoBox');
             vBox.innerHTML = `
-                <div class="ad-warning">🔴 MKS SPORTS LIVE</div>
+                <div class="ad-warning">💎 PREMIUM MKS STREAM (Ad-Free)</div>
                 <video id="nativePlayer" controls autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>
             `;
             const video = document.getElementById('nativePlayer');
 
-            if (shakaPlayerInstance) { await shakaPlayerInstance.destroy(); shakaPlayerInstance = null; }
-            if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-
-            // 1. DRM Protected (Zee Sarthak, etc)
+            // 1. DRM Protected (Zee Channels, Discovery, etc)
             if (keyId && key) {
                 shaka.polyfill.installAll();
                 shakaPlayerInstance = new shaka.Player(video);
@@ -287,9 +235,10 @@
                     video.play();
                 } catch (e) {
                     console.error('DRM Error:', e);
+                    vBox.innerHTML = `<div style="color:red; text-align:center; padding-top:100px;">Key Expired or Stream Offline.</div>`;
                 }
             } 
-            // 2. M3U8 Links (Fancode, Willow, Ten Cricket)
+            // 2. M3U8 Links (Willow, Ten Cricket)
             else if (url.includes('.m3u8')) {
                 if (Hls.isSupported()) {
                     hlsInstance = new Hls();
@@ -303,7 +252,7 @@
                     video.addEventListener('loadedmetadata', function() { video.play(); });
                 }
             } 
-            // 3. Fallback to Shaka
+            // 3. Fallback
             else {
                 shaka.polyfill.installAll();
                 shakaPlayerInstance = new shaka.Player(video);
@@ -311,7 +260,7 @@
                     await shakaPlayerInstance.load(url);
                     video.play();
                 } catch (e) {
-                    console.error('Playback Error:', e);
+                    vBox.innerHTML = `<div style="color:red; text-align:center; padding-top:100px;">Stream Load Error.</div>`;
                 }
             }
         }
