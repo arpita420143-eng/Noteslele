@@ -102,7 +102,7 @@
     <div class="container">
         
         <!-- TELEGRAM JOIN BUTTON -->
-        <button class="tg-btn" onclick="window.open('https://t.me/MKSsports_3', '_blank')">
+        <button class="tg-btn" onclick="window.open('https://t.me/Finally_Live_Streaming', '_blank')">
             <i class="fab fa-telegram-plane" style="font-size:18px; margin-right:5px;"></i> JOIN TELEGRAM CHANNEL
         </button>
 
@@ -116,7 +116,7 @@
         <!-- M3U8 Quality Buttons -->
         <div id="qualityBox"></div>
 
-        <!-- 🚀 MEGA COLLECTION (EXACT 12 CHANNELS BINDED) -->
+        <!-- 🚀 MEGA COLLECTION (EXACT 14 CHANNELS BINDED) -->
         <div class="section-heading" onclick="toggleCategory('megaList', 'iconMega')">
             <i class="fas fa-rocket" style="color:var(--accent-primary);"></i> Mega Collection <i id="iconMega" class="fas fa-chevron-up" style="margin-left:auto;"></i>
         </div>
@@ -156,8 +156,8 @@
                     
                     // TELEGRAM POP-UP AFTER UNLOCK
                     setTimeout(() => {
-                        if (confirm("Join Our Telegram Channel @MKSsports_3?")) {
-                            window.open("https://t.me/MKSsports_3", '_blank');
+                        if (confirm("Join Our Telegram Channel @Finallylive?")) {
+                            window.open("https://t.me/Finally_Live_Streaming", '_blank');
                         }
                     }, 1000);
                 }, 800); 
@@ -178,13 +178,26 @@
             }
         };
 
-        // --- 3. EXCLUSIVE CHANNELS DATA (EXACTLY AS REQUESTED) ---
+        // --- 3. EXCLUSIVE CHANNELS DATA (CRICBUZZ ADDED BACK!) ---
         const CHANNELS = {
+            // 🔥 CRICBUZZ LIVE (WITH HEADERS) 🔥
+            cricbuzz_live: { 
+                title: "Cricbuzz Live", 
+                icon: "fas fa-baseball-ball", 
+                type: "dash", 
+                url: "https://a96aivottlinear-a.akamaihd.net/OTTB/pdx-nitro/live/clients/dash/enc/ezxzrnbccf/out/v1/8d7e9f7b9d2040daa87ffa8a5789cfad/cenc.mpd", 
+                kid: "3448cef71b3ff74e7ccf1ceb639320cb", 
+                key: "e096d49c986fe62f713fcb489bbf8d91",
+                headers: {
+                    "Referer": "https://www.cricbuzz.com/",
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+                }
+            },
+
             // IFRAME CHANNELS
-            sonu_ten3: { name: "Sony Ten 3 (CDN)", icon: "fas fa-play-circle", url: "https://sonucdn-v2.pages.dev/star?id=STEN3", isIframe: true },
-            ind_wrestling: { name: "Wrestling Live", icon: "fas fa-star", url: "https://tv4wab.wapka.site/index.html", isIframe: true },
+            sonu_ten3: { title: "Sony Ten 3 (CDN)", icon: "fas fa-play-circle", url: "https://sonucdn-v2.pages.dev/star?id=STEN3", isIframe: true },
+            ind_wrestling: { title: "Wrestling Live", icon: "fas fa-star", url: "https://tv4wab.wapka.site/index.html", isIframe: true },
             
-            // THE 12 REQUESTED EXCLUSIVE CHANNELS
             willow: { title: "Willow TV", icon: "fas fa-baseball-ball", url: "https://amg01269-amg01269c1-sportstribal-emea-5204.playouts.now.amagi.tv/ts-eu-w1-n2/playlist/amg01269-willowtvfast-willowplus-sportstribalemea/playlist.m3u8", type: "hls" },
             ten_cric: { title: "Ten Cricket HD", icon: "fas fa-tv", url: "https://stream.ottplus.live/live/ten_cricket_hd_abr/live/ten_cricket_hd_720/chunks.m3u8", type: "hls" },
             zee_sarthak: { title: "Zee Sarthak", icon: "fas fa-tv", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeesarthak/default/devil.mpd", kid: "ecad0b097b574078a4a1bde24bfdb2e5", key: "568bb13d04db4b738864f6c849474cd5" },
@@ -300,15 +313,16 @@
                         vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-exclamation-triangle"></i> TAP PLAY 2 TIMES TO BYPASS ADS</div><iframe src="${fUrl}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true"></iframe>`;
                     }
                     else {
-                        startNativePlayer(ch.url, ch.kid, ch.key, ch.type);
+                        // Pass headers down to startNativePlayer
+                        startNativePlayer(ch.url, ch.kid, ch.key, ch.type, ch.headers);
                     }
                 }, 300);
             };
             return card;
         }
 
-        // --- 7. NATIVE PLAYER ---
-        async function startNativePlayer(url, kid, key, type) {
+        // --- 7. NATIVE PLAYER (WITH HEADERS SUPPORT) ---
+        async function startNativePlayer(url, kid, key, type, headers) {
             const vBox = document.getElementById('videoBox');
             
             // DASH / DRM
@@ -332,11 +346,20 @@
                     shakaPlayerInstance.configure({ drm: { clearKeys: { [kid]: key } } });
                 }
 
+                // INJECT HEADERS (e.g. for Cricbuzz)
+                if (headers) {
+                    shakaPlayerInstance.getNetworkingEngine().registerRequestFilter(function(reqType, request) {
+                        for (const [hKey, hVal] of Object.entries(headers)) {
+                            request.headers[hKey] = hVal;
+                        }
+                    });
+                }
+
                 try {
                     await shakaPlayerInstance.load(url);
                     video.play();
                 } catch (e) {
-                    vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline.</div>`;
+                    vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline or Blocked by CORS.</div>`;
                 }
             } 
             // HLS
