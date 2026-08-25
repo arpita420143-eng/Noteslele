@@ -101,9 +101,9 @@
 
     <div class="container">
         
-        <!-- TELEGRAM JOIN BUTTON -->
-        <button class="tg-btn" onclick="window.open('https://t.me/Finally_Live_Streaming', '_blank')">
-            <i class="fab fa-telegram-plane" style="font-size:18px; margin-right:5px;"></i> JOIN TELEGRAM CHANNEL
+        <!-- MKS SPORTS TELEGRAM JOIN BUTTON -->
+        <button class="tg-btn" onclick="window.open('https://t.me/MKSsports_3', '_blank')">
+            <i class="fab fa-telegram-plane" style="font-size:18px; margin-right:5px;"></i> JOIN MKS SPORTS TELEGRAM
         </button>
 
         <!-- VIDEO PLAYER AREA -->
@@ -116,7 +116,7 @@
         <!-- M3U8 Quality Buttons -->
         <div id="qualityBox"></div>
 
-        <!-- 🚀 MEGA COLLECTION (EXACT 14 CHANNELS BINDED) -->
+        <!-- 🚀 MEGA COLLECTION -->
         <div class="section-heading" onclick="toggleCategory('megaList', 'iconMega')">
             <i class="fas fa-rocket" style="color:var(--accent-primary);"></i> Mega Collection <i id="iconMega" class="fas fa-chevron-up" style="margin-left:auto;"></i>
         </div>
@@ -153,9 +153,11 @@
                 document.getElementById("splash-screen").style.opacity = "0"; 
                 setTimeout(() => { 
                     document.getElementById("splash-screen").style.display = "none"; 
+                    
+                    // MKS SPORTS TELEGRAM POP-UP AFTER UNLOCK
                     setTimeout(() => {
-                        if (confirm("Join Our Telegram Channel @Finallylive?")) {
-                            window.open("https://t.me/Finally_Live_Streaming", '_blank');
+                        if (confirm("Join Our Telegram Channel @MKSsports_3?")) {
+                            window.open("https://t.me/MKSsports_3", '_blank');
                         }
                     }, 1000);
                 }, 800); 
@@ -319,7 +321,6 @@
         async function startNativePlayer(url, kid, key, type, headers) {
             const vBox = document.getElementById('videoBox');
             
-            // DASH / DRM (Cricbuzz, Zee, etc.)
             if (type === 'dash' || (kid && key)) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
@@ -339,7 +340,6 @@
                     controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'quality', 'fullscreen'] 
                 });
                 
-                // 🔥 ANTI-BUFFERING & LOW LATENCY CONFIGURATION 🔥
                 let playerConfig = {
                     manifest: {
                         dash: { autoCorrectDrift: true, ignoreMinBufferTime: true },
@@ -347,7 +347,7 @@
                     },
                     abr: {
                         enabled: true,
-                        defaultBandwidthEstimate: 1000000, // Starts with lower quality for fast load
+                        defaultBandwidthEstimate: 1000000,
                         bandwidthUpgradeTarget: 0.85,
                         bandwidthDowngradeTarget: 0.95,
                         restrictions: { maxHeight: 1080 }
@@ -360,11 +360,10 @@
 
                 shakaPlayerInstance.configure(playerConfig);
 
-                // Low Latency Config for Live Streams
                 shakaPlayerInstance.configurationForLowLatency({
                     streaming: {
                         inaccurateManifestTolerance: 0,
-                        segmentPrefetchLimit: 2, // Pre-fetches chunks to avoid loading spins
+                        segmentPrefetchLimit: 2,
                         updateIntervalSeconds: 0.1,
                         maxDisabledTime: 1,
                         bufferingGoal: 10,
@@ -375,7 +374,6 @@
                     }
                 });
 
-                // INJECT HEADERS
                 if (headers) {
                     shakaPlayerInstance.getNetworkingEngine().registerRequestFilter(function(reqType, request) {
                         for (const [hKey, hVal] of Object.entries(headers)) {
@@ -391,11 +389,9 @@
                     vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline or Blocked by CORS.</div>`;
                 }
             } 
-            // MP4 Streams
             else if (type === 'mp4' || url.includes('.mp4')) {
                 vBox.innerHTML = `<video src="${url}" controls autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>`;
             }
-            // HLS Streams (.m3u8)
             else if (type === 'hls' || url.includes('.m3u8')) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
@@ -406,10 +402,9 @@
                 if (Hls.isSupported()) {
                     hlsInstance = new Hls();
                     
-                    // Anti-buffering config for HLS
                     hlsInstance.config.maxBufferLength = 30;
                     hlsInstance.config.maxMaxBufferLength = 60;
-                    hlsInstance.config.startLevel = -1; // Auto
+                    hlsInstance.config.startLevel = -1;
 
                     hlsInstance.loadSource(url);
                     hlsInstance.attachMedia(video);
