@@ -153,6 +153,8 @@
                 document.getElementById("splash-screen").style.opacity = "0"; 
                 setTimeout(() => { 
                     document.getElementById("splash-screen").style.display = "none"; 
+                    
+                    // MKS SPORTS TELEGRAM POP-UP AFTER UNLOCK
                     setTimeout(() => {
                         if (confirm("Join Our Telegram Channel @MKSsports_3?")) {
                             window.open("https://t.me/MKSsports_3", '_blank');
@@ -178,7 +180,22 @@
 
         // --- 3. EXCLUSIVE CHANNELS DATA ---
         const CHANNELS = {
-            // CRICBUZZ LIVE (HEADERS BINDED)
+            // 🔥 NEW: SONY TEN 3 (NATIVE WITH DYNAMIC COOKIE) 🔥
+            sony_ten3: { 
+                title: "Sony Ten 3 HD", 
+                icon: "fas fa-tv", 
+                type: "dash", 
+                url: "https://jiotvmblive.cdn.jio.com/bpk-tv/Ten_3_MOB/WDVLive/index.mpd", 
+                kid: "68318f7c97c55ba6ab8d0398a88fed3e", 
+                key: "d312fb3325b4eb9462b4a0d2b6794adf",
+                dynamicCookieUrl: "https://allrounder2-0.pages.dev/api/Sony-3.json",
+                headers: {
+                    "Referer": "https://www.jiotv.com/",
+                    "User-Agent": "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6"
+                }
+            },
+
+            // CRICBUZZ LIVE
             cricbuzz_live: { 
                 title: "Cricbuzz Live", 
                 icon: "fas fa-baseball-ball", 
@@ -192,8 +209,6 @@
                 }
             },
 
-            // IFRAME CHANNELS
-            sonu_ten3: { title: "Sony Ten 3 (CDN)", icon: "fas fa-play-circle", url: "https://sonucdn-v2.pages.dev/star?id=STEN3", isIframe: true },
             ind_wrestling: { title: "Wrestling Live", icon: "fas fa-star", url: "https://tv4wab.wapka.site/index.html", isIframe: true },
             
             // HLS & M3U8 NATIVE
@@ -294,7 +309,8 @@
                 
                 vBox.innerHTML = `<div style="color:var(--accent-primary); font-weight:bold; font-size:14px; text-align:center; padding-top:110px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>`;
 
-                setTimeout(() => {
+                // 🔥 ASYNC LOGIC FOR DYNAMIC COOKIES 🔥
+                setTimeout(async () => {
                     if (ch.isIframe) {
                         vBox.innerHTML = `
                             <div class="ad-warning"><i class="fas fa-globe"></i> WEB PLAYER ACTIVE</div>
@@ -309,18 +325,35 @@
                         vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-exclamation-triangle"></i> TAP PLAY 2 TIMES TO BYPASS ADS</div><iframe src="${fUrl}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true"></iframe>`;
                     }
                     else {
-                        startNativePlayer(ch.url, ch.kid, ch.key, ch.type, ch.headers);
+                        let finalHeaders = ch.headers ? { ...ch.headers } : null;
+                        let uriCookie = null;
+
+                        // Fetch fresh cookie if URL provided (Like for Sony Ten 3)
+                        if (ch.dynamicCookieUrl) {
+                            try {
+                                let res = await fetch(ch.dynamicCookieUrl, { cache: "no-store" });
+                                let data = await res.json();
+                                if (data.cookie) {
+                                    if (!finalHeaders) finalHeaders = {};
+                                    finalHeaders["Cookie"] = data.cookie;
+                                    uriCookie = data.cookie.startsWith("__hdnea__=") ? data.cookie.substring(10) : data.cookie;
+                                }
+                            } catch (e) {
+                                console.log("Cookie Fetch Error");
+                            }
+                        }
+                        
+                        startNativePlayer(ch.url, ch.kid, ch.key, ch.type, finalHeaders, uriCookie);
                     }
                 }, 300);
             };
             return card;
         }
 
-        // --- 7. NATIVE PLAYER (BALANCED LOAD) ---
-        async function startNativePlayer(url, kid, key, type, headers) {
+        // --- 7. NATIVE PLAYER (WITH DYNAMIC URI APPENDER) ---
+        async function startNativePlayer(url, kid, key, type, headers, uriCookie) {
             const vBox = document.getElementById('videoBox');
             
-            // DASH / DRM (Cricbuzz, Zee, etc.)
             if (type === 'dash' || (kid && key)) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
@@ -340,7 +373,6 @@
                     controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'quality', 'fullscreen'] 
                 });
                 
-                // SAFE & BALANCED CONFIG (Fixed loading issue)
                 let playerConfig = {
                     manifest: { dash: { autoCorrectDrift: true } },
                     abr: { enabled: true }
@@ -352,11 +384,22 @@
 
                 shakaPlayerInstance.configure(playerConfig);
 
-                // INJECT HEADERS (For Cricbuzz)
-                if (headers) {
+                // INJECT HEADERS AND DYNAMIC COOKIES TO URI
+                if (headers || uriCookie) {
                     shakaPlayerInstance.getNetworkingEngine().registerRequestFilter(function(reqType, request) {
-                        for (const [hKey, hVal] of Object.entries(headers)) {
-                            request.headers[hKey] = hVal;
+                        if (headers) {
+                            for (const [hKey, hVal] of Object.entries(headers)) {
+                                request.headers[hKey] = hVal;
+                            }
+                        }
+                        // Append __hdnea__ token if dynamic cookie was fetched
+                        if (uriCookie) {
+                            if ((reqType === shaka.net.NetworkingEngine.RequestType.MANIFEST || 
+                                 reqType === shaka.net.NetworkingEngine.RequestType.SEGMENT) && 
+                                !request.uris[0].includes("__hdnea__")) {
+                                const sep = request.uris[0].includes("?") ? "&" : "?";
+                                request.uris[0] += sep + "__hdnea__=" + uriCookie;
+                            }
                         }
                     });
                 }
@@ -365,14 +408,12 @@
                     await shakaPlayerInstance.load(url);
                     video.play();
                 } catch (e) {
-                    vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline or Blocked.</div>`;
+                    vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline or Blocked by CORS.</div>`;
                 }
             } 
-            // MP4
             else if (type === 'mp4' || url.includes('.mp4')) {
                 vBox.innerHTML = `<video src="${url}" controls autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>`;
             }
-            // HLS (.m3u8)
             else if (type === 'hls' || url.includes('.m3u8')) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
