@@ -153,8 +153,6 @@
                 document.getElementById("splash-screen").style.opacity = "0"; 
                 setTimeout(() => { 
                     document.getElementById("splash-screen").style.display = "none"; 
-                    
-                    // MKS SPORTS TELEGRAM POP-UP AFTER UNLOCK
                     setTimeout(() => {
                         if (confirm("Join Our Telegram Channel @MKSsports_3?")) {
                             window.open("https://t.me/MKSsports_3", '_blank');
@@ -180,7 +178,7 @@
 
         // --- 3. EXCLUSIVE CHANNELS DATA ---
         const CHANNELS = {
-            // CRICBUZZ LIVE
+            // CRICBUZZ LIVE (HEADERS BINDED)
             cricbuzz_live: { 
                 title: "Cricbuzz Live", 
                 icon: "fas fa-baseball-ball", 
@@ -198,6 +196,7 @@
             sonu_ten3: { title: "Sony Ten 3 (CDN)", icon: "fas fa-play-circle", url: "https://sonucdn-v2.pages.dev/star?id=STEN3", isIframe: true },
             ind_wrestling: { title: "Wrestling Live", icon: "fas fa-star", url: "https://tv4wab.wapka.site/index.html", isIframe: true },
             
+            // HLS & M3U8 NATIVE
             willow: { title: "Willow TV", icon: "fas fa-baseball-ball", url: "https://amg01269-amg01269c1-sportstribal-emea-5204.playouts.now.amagi.tv/ts-eu-w1-n2/playlist/amg01269-willowtvfast-willowplus-sportstribalemea/playlist.m3u8", type: "hls" },
             ten_cric: { title: "Ten Cricket HD", icon: "fas fa-tv", url: "https://stream.ottplus.live/live/ten_cricket_hd_abr/live/ten_cricket_hd_720/chunks.m3u8", type: "hls" },
             zee_sarthak: { title: "Zee Sarthak", icon: "fas fa-tv", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeesarthak/default/devil.mpd", kid: "ecad0b097b574078a4a1bde24bfdb2e5", key: "568bb13d04db4b738864f6c849474cd5" },
@@ -317,10 +316,11 @@
             return card;
         }
 
-        // --- 7. SMART NATIVE PLAYER (WITH ANTI-BUFFERING & LOW LATENCY) ---
+        // --- 7. NATIVE PLAYER (BALANCED LOAD) ---
         async function startNativePlayer(url, kid, key, type, headers) {
             const vBox = document.getElementById('videoBox');
             
+            // DASH / DRM (Cricbuzz, Zee, etc.)
             if (type === 'dash' || (kid && key)) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
@@ -340,18 +340,10 @@
                     controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'quality', 'fullscreen'] 
                 });
                 
+                // SAFE & BALANCED CONFIG (Fixed loading issue)
                 let playerConfig = {
-                    manifest: {
-                        dash: { autoCorrectDrift: true, ignoreMinBufferTime: true },
-                        retryParameters: { baseDelay: 100 }
-                    },
-                    abr: {
-                        enabled: true,
-                        defaultBandwidthEstimate: 1000000,
-                        bandwidthUpgradeTarget: 0.85,
-                        bandwidthDowngradeTarget: 0.95,
-                        restrictions: { maxHeight: 1080 }
-                    }
+                    manifest: { dash: { autoCorrectDrift: true } },
+                    abr: { enabled: true }
                 };
 
                 if(kid && key) {
@@ -360,20 +352,7 @@
 
                 shakaPlayerInstance.configure(playerConfig);
 
-                shakaPlayerInstance.configurationForLowLatency({
-                    streaming: {
-                        inaccurateManifestTolerance: 0,
-                        segmentPrefetchLimit: 2,
-                        updateIntervalSeconds: 0.1,
-                        maxDisabledTime: 1,
-                        bufferingGoal: 10,
-                        rebufferingGoal: 2,
-                        bufferBehind: 30,
-                        safeSeekOffset: 3,
-                        retryParameters: { baseDelay: 100, maxAttempts: 5, backoffFactor: 1.5, fuzzFactor: 0.5 }
-                    }
-                });
-
+                // INJECT HEADERS (For Cricbuzz)
                 if (headers) {
                     shakaPlayerInstance.getNetworkingEngine().registerRequestFilter(function(reqType, request) {
                         for (const [hKey, hVal] of Object.entries(headers)) {
@@ -386,26 +365,23 @@
                     await shakaPlayerInstance.load(url);
                     video.play();
                 } catch (e) {
-                    vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline or Blocked by CORS.</div>`;
+                    vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline or Blocked.</div>`;
                 }
             } 
+            // MP4
             else if (type === 'mp4' || url.includes('.mp4')) {
                 vBox.innerHTML = `<video src="${url}" controls autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>`;
             }
+            // HLS (.m3u8)
             else if (type === 'hls' || url.includes('.m3u8')) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
-                    <video id="nativePlayer" controls autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>
+                    <video id="nativePlayer" controls autoplay playsinline style="width:100%; height:100%; outline:none; background:#000;"></video>
                 `;
                 const video = document.getElementById('nativePlayer');
 
                 if (Hls.isSupported()) {
                     hlsInstance = new Hls();
-                    
-                    hlsInstance.config.maxBufferLength = 30;
-                    hlsInstance.config.maxMaxBufferLength = 60;
-                    hlsInstance.config.startLevel = -1;
-
                     hlsInstance.loadSource(url);
                     hlsInstance.attachMedia(video);
                     
