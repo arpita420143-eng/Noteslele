@@ -153,8 +153,6 @@
                 document.getElementById("splash-screen").style.opacity = "0"; 
                 setTimeout(() => { 
                     document.getElementById("splash-screen").style.display = "none"; 
-                    
-                    // TELEGRAM POP-UP AFTER UNLOCK
                     setTimeout(() => {
                         if (confirm("Join Our Telegram Channel @Finallylive?")) {
                             window.open("https://t.me/Finally_Live_Streaming", '_blank');
@@ -178,9 +176,9 @@
             }
         };
 
-        // --- 3. EXCLUSIVE CHANNELS DATA (CRICBUZZ ADDED BACK!) ---
+        // --- 3. EXCLUSIVE CHANNELS DATA ---
         const CHANNELS = {
-            // 🔥 CRICBUZZ LIVE (WITH HEADERS) 🔥
+            // CRICBUZZ LIVE
             cricbuzz_live: { 
                 title: "Cricbuzz Live", 
                 icon: "fas fa-baseball-ball", 
@@ -215,15 +213,12 @@
         // --- 4. DATA LOADING & CREATING CARDS ---
         function loadChannels() {
             const megaList = document.getElementById('megaList');
-
-            // Load Mega Collection
             Object.values(CHANNELS).forEach(ch => {
                 megaList.appendChild(createChannelCard(ch));
             });
 
             const proxyBase = "https://mkscricket.mks-cricket.workers.dev/?url=";
             
-            // 🔥 SONY & STAR LIVE APIs 🔥
             const sonyJsonUrl = atob('aHR0cHM6Ly9hbGxpbm9uZXJlYm9ybjIub25saW5lL3Nvbnkvc2xpdjMuanNvbg==');
             const starJsonUrl = atob('aHR0cHM6Ly9qdHZ4d2ViLnBhZ2VzLmRldi9qc3RyNHdlYi5qc29u');
 
@@ -313,7 +308,6 @@
                         vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-exclamation-triangle"></i> TAP PLAY 2 TIMES TO BYPASS ADS</div><iframe src="${fUrl}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true"></iframe>`;
                     }
                     else {
-                        // Pass headers down to startNativePlayer
                         startNativePlayer(ch.url, ch.kid, ch.key, ch.type, ch.headers);
                     }
                 }, 300);
@@ -321,11 +315,11 @@
             return card;
         }
 
-        // --- 7. NATIVE PLAYER (WITH HEADERS SUPPORT) ---
+        // --- 7. SMART NATIVE PLAYER (WITH ANTI-BUFFERING & LOW LATENCY) ---
         async function startNativePlayer(url, kid, key, type, headers) {
             const vBox = document.getElementById('videoBox');
             
-            // DASH / DRM
+            // DASH / DRM (Cricbuzz, Zee, etc.)
             if (type === 'dash' || (kid && key)) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
@@ -340,13 +334,48 @@
                 shakaPlayerInstance = new shaka.Player(video);
                 
                 shakaUIInstance = new shaka.ui.Overlay(shakaPlayerInstance, container, video);
-                shakaUIInstance.configure({ addSeekBar: true, controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'quality', 'fullscreen'] });
+                shakaUIInstance.configure({ 
+                    addSeekBar: true, 
+                    controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'quality', 'fullscreen'] 
+                });
                 
+                // 🔥 ANTI-BUFFERING & LOW LATENCY CONFIGURATION 🔥
+                let playerConfig = {
+                    manifest: {
+                        dash: { autoCorrectDrift: true, ignoreMinBufferTime: true },
+                        retryParameters: { baseDelay: 100 }
+                    },
+                    abr: {
+                        enabled: true,
+                        defaultBandwidthEstimate: 1000000, // Starts with lower quality for fast load
+                        bandwidthUpgradeTarget: 0.85,
+                        bandwidthDowngradeTarget: 0.95,
+                        restrictions: { maxHeight: 1080 }
+                    }
+                };
+
                 if(kid && key) {
-                    shakaPlayerInstance.configure({ drm: { clearKeys: { [kid]: key } } });
+                    playerConfig.drm = { clearKeys: { [kid]: key } };
                 }
 
-                // INJECT HEADERS (e.g. for Cricbuzz)
+                shakaPlayerInstance.configure(playerConfig);
+
+                // Low Latency Config for Live Streams
+                shakaPlayerInstance.configurationForLowLatency({
+                    streaming: {
+                        inaccurateManifestTolerance: 0,
+                        segmentPrefetchLimit: 2, // Pre-fetches chunks to avoid loading spins
+                        updateIntervalSeconds: 0.1,
+                        maxDisabledTime: 1,
+                        bufferingGoal: 10,
+                        rebufferingGoal: 2,
+                        bufferBehind: 30,
+                        safeSeekOffset: 3,
+                        retryParameters: { baseDelay: 100, maxAttempts: 5, backoffFactor: 1.5, fuzzFactor: 0.5 }
+                    }
+                });
+
+                // INJECT HEADERS
                 if (headers) {
                     shakaPlayerInstance.getNetworkingEngine().registerRequestFilter(function(reqType, request) {
                         for (const [hKey, hVal] of Object.entries(headers)) {
@@ -362,7 +391,11 @@
                     vBox.innerHTML = `<div style="color:#ef4444; text-align:center; padding-top:90px; font-weight:bold;"><i class="fas fa-times-circle" style="font-size:30px; margin-bottom:10px;"></i><br>Stream Offline or Blocked by CORS.</div>`;
                 }
             } 
-            // HLS
+            // MP4 Streams
+            else if (type === 'mp4' || url.includes('.mp4')) {
+                vBox.innerHTML = `<video src="${url}" controls autoplay style="width:100%; height:100%; outline:none; background:#000;"></video>`;
+            }
+            // HLS Streams (.m3u8)
             else if (type === 'hls' || url.includes('.m3u8')) {
                 vBox.innerHTML = `
                     <div class="live-badge"><div class="dot"></div> LIVE</div>
@@ -372,6 +405,12 @@
 
                 if (Hls.isSupported()) {
                     hlsInstance = new Hls();
+                    
+                    // Anti-buffering config for HLS
+                    hlsInstance.config.maxBufferLength = 30;
+                    hlsInstance.config.maxMaxBufferLength = 60;
+                    hlsInstance.config.startLevel = -1; // Auto
+
                     hlsInstance.loadSource(url);
                     hlsInstance.attachMedia(video);
                     
@@ -396,7 +435,7 @@
             }
         }
 
-        // Initialize
+        // Initialize App
         loadChannels();
     </script>
 </body>
