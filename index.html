@@ -84,7 +84,6 @@
     </style>
 </head>
 <body class="locked">
-
     <!-- 🔥 APP SPLASH SCREEN (Main Lock) 🔥 -->
     <div class="mks-splash" id="splash-screen">
         <div class="mks-splash-glow"></div>
@@ -153,16 +152,16 @@
         <div id="mksStarList" class="category-list"></div>
 
     </div>
+
+    <!-- === JAVASCRIPT === -->
     <script>
         document.addEventListener('contextmenu', event => event.preventDefault());
 
-        // --- GLOBAL VARIABLES ---
         let allLoadedChannels = {}; 
         let shakaPlayerInstance = null; 
         let shakaUIInstance = null;
         let hlsInstance = null;
 
-        // --- 1. SECURE PIN SYSTEM ---
         const SECRET_PIN = "8888"; 
         
         window.showPasswordBox = function() { 
@@ -188,7 +187,6 @@
             }
         };
 
-        // --- 2. CHANNEL SPECIFIC LOCK SYSTEM ---
         let pendingChannelCallback = null;
         let expectedChannelPin = "";
 
@@ -233,7 +231,6 @@
             }
         };
 
-        // --- SEARCH LOGIC (Debounced) ---
         let searchTimeout;
         window.searchChannels = function() {
             clearTimeout(searchTimeout);
@@ -256,8 +253,7 @@
                 }
             }, 300);
         };
-
-        // --- EXCLUSIVE CHANNELS WITH ZEE CHANNELS ---
+        // --- CHANNELS LIST INC. ZEE ---
         const CHANNELS = {
             sony_ten3: { title: "Sony Ten 3 HD", icon: "fas fa-tv", type: "dash", pin: "1111", url: "https://jiotvmblive.cdn.jio.com/bpk-tv/Ten_3_MOB/WDVLive/index.mpd", kid: "68318f7c97c55ba6ab8d0398a88fed3e", key: "d312fb3325b4eb9462b4a0d2b6794adf", dynamicCookieUrl: "https://allrounder2-0.pages.dev/api/Sony-3.json", headers: { "Referer": "https://www.jiotv.com/", "User-Agent": "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6" } },
             cricbuzz_live: { title: "Cricbuzz Live", icon: "fas fa-baseball-ball", type: "dash", pin: "2222", url: "https://a96aivottlinear-a.akamaihd.net/OTTB/pdx-nitro/live/clients/dash/enc/ezxzrnbccf/out/v1/8d7e9f7b9d2040daa87ffa8a5789cfad/cenc.mpd", kid: "3448cef71b3ff74e7ccf1ceb639320cb", key: "e096d49c986fe62f713fcb489bbf8d91", headers: { "Referer": "https://www.cricbuzz.com/", "User-Agent": "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36" } },
@@ -279,6 +275,7 @@
         for (const [key, val] of Object.entries(CHANNELS)) {
             allLoadedChannels[key] = val;
         }
+
         window.triggerChannelUnlock = function(ch) {
             let channelPinToUnlock = ch.pin || "1234";
             let displayName = ch.title || ch.name || "MKS SPORTS";
@@ -297,12 +294,17 @@
                 vBox.innerHTML = `<div style="color:var(--accent-primary); font-weight:bold; font-size:14px; text-align:center; padding-top:110px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>`;
 
                 setTimeout(async () => {
+                    // IFRAME ROUTING FOR APIS
                     if (ch.isIframe) {
                         vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-globe"></i> WEB PLAYER ACTIVE</div><iframe src="${ch.url}" style="border:none; width:100%; height:100%; display:block;" frameborder="0" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen="true"></iframe>`;
                     } 
                     else if (ch.isSonyAPI) {
                         vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-shield-alt"></i> SONY API PLAYER</div><iframe src="https://allinonereborn2.online/sony/ptest1.html?id=${ch.id}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true" allow="encrypted-media"></iframe>`;
                     }
+                    else if (ch.isStarAPI) {
+                        vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-exclamation-triangle"></i> TAP PLAY 2 TIMES TO BYPASS ADS</div><iframe src="https://jjtvxweb.pages.dev/pind?id=${ch.id}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true" allow="encrypted-media"></iframe>`;
+                    }
+                    // NATIVE PLAYER ROUTING FOR STATIC
                     else {
                         let finalHeaders = ch.headers ? { ...ch.headers } : null;
                         let uriCookie = null;
@@ -318,19 +320,14 @@
                             } catch (e) { console.log("Cookie Fetch Error"); }
                         }
                         if (ch.type === "dash" && !finalHeaders) {
-                            finalHeaders = {
-                                "Referer": "https://www.jiotv.com/",
-                                "User-Agent": "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6"
-                            };
+                            finalHeaders = { "Referer": "https://www.jiotv.com/", "User-Agent": "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6" };
                         }
-                        
                         startNativePlayer(ch.url, ch.kid, ch.key, ch.type, finalHeaders, uriCookie);
                     }
                 }, 300);
             });
         };
 
-        // --- LOAD CHANNELS FROM APIS ---
         function loadChannels() {
             const megaList = document.getElementById('megaList');
             Object.keys(CHANNELS).forEach(key => {
@@ -341,35 +338,40 @@
             const sonyJsonUrl = atob('aHR0cHM6Ly9hbGxpbm9uZXJlYm9ybjIub25saW5lL3Nvbnkvc2xpdjMuanNvbg==');
             const starJsonUrl = "https://jjtvxweb.pages.dev/jstr4web.json";
 
-            // Load Sony Channels
+            // SONY JSON TO IFRAME ID MAPPING
             fetch(proxyBase + encodeURIComponent(sonyJsonUrl)).then(res => res.json()).then(data => {
                 const tvList = document.getElementById('mksTvList');
                 tvList.innerHTML = ""; 
                 for (const key in data) {
                     let item = data[key];
-                    if(item.title || item.name) {
-                        let mappedData = { title: item.title || item.name, icon: item.logo || "fas fa-shield-alt", url: item.url || item.link || "", id: item.id, isSonyAPI: true, pin: "1234" };
+                    let channelTitle = item.title || item.name;
+                    if(channelTitle) {
+                        let mappedData = { 
+                            title: channelTitle, 
+                            icon: item.logo || "fas fa-shield-alt", 
+                            id: item.id || key, 
+                            isSonyAPI: true,
+                            pin: "1234"
+                        };
                         allLoadedChannels[mappedData.id] = mappedData;
                         tvList.appendChild(createChannelCard(mappedData));
                     }
                 }
             }).catch(e => console.log("Sony API Error", e));
 
-            // Load Star Channels
+            // STAR JSON TO IFRAME ID MAPPING
             fetch(proxyBase + encodeURIComponent(starJsonUrl)).then(res => res.json()).then(data => {
                 const starList = document.getElementById('mksStarList');
                 starList.innerHTML = ""; 
                 data.forEach(item => {
-                    if(item.name || item.title) {
+                    let channelTitle = item.name || item.title;
+                    if(channelTitle) {
                         let mappedData = { 
-                            title: item.name || item.title, 
+                            title: channelTitle, 
                             icon: item.logo || "fas fa-star", 
-                            url: item.url || "", 
-                            kid: item.keyId || "", 
-                            key: item.key || "",   
-                            type: "dash",          
                             id: item.id, 
-                            pin: "1234" 
+                            isStarAPI: true, 
+                            pin: "1234"
                         };
                         allLoadedChannels[mappedData.id] = mappedData;
                         starList.appendChild(createChannelCard(mappedData));
@@ -381,26 +383,21 @@
         function createChannelCard(ch) {
             const card = document.createElement('div');
             card.className = 'server-card';
-            
             let displayName = ch.title || ch.name || "MKS SPORTS";
             let isImage = ch.icon && (ch.icon.startsWith('http') || ch.icon.includes('.'));
             let visualHtml = isImage 
                 ? `<div class="channel-icon-container"><img src="${ch.icon}" style="max-width:100%; max-height:100%; object-fit:contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><i class="fas fa-tv channel-icon" style="display:none;"></i></div>`
                 : `<div class="channel-icon-container"><i class="${ch.icon || 'fas fa-play'} channel-icon"></i></div>`;
-            
             card.innerHTML = visualHtml + `<div class="channel-title">${displayName}</div>`;
             card.onclick = () => triggerChannelUnlock(ch);
             return card;
         }
 
-        // --- CHECK URL PARAMETER ---
         function checkDirectUrl() {
             const urlParams = new URLSearchParams(window.location.search);
             const reqId = urlParams.get('id');
-            
             if (reqId) {
                 document.getElementById("splash-screen").style.display = "none";
-                
                 if (allLoadedChannels[reqId]) {
                     triggerChannelUnlock(allLoadedChannels[reqId]);
                 } else {
@@ -418,7 +415,6 @@
             }
         }
 
-        // --- NATIVE PLAYER ---
         window.changeHlsQuality = function(levelIndex) {
             if(hlsInstance) {
                 hlsInstance.currentLevel = levelIndex;
@@ -479,7 +475,6 @@
             }
         }
 
-        // Initialize App & Check URL
         loadChannels();
         checkDirectUrl();
     </script>
