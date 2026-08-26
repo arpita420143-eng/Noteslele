@@ -236,29 +236,28 @@
             }
         };
 
-        // --- NEW: SEARCH LOGIC ---
+        // --- NEW: SEARCH LOGIC (Debounced) ---
+        let searchTimeout;
         window.searchChannels = function() {
-            let input = document.getElementById('searchInput').value.toLowerCase();
-            let cards = document.getElementsByClassName('server-card');
-            
-            // Expand all lists when searching so users can see the matching results
-            if(input.length > 0) {
-                document.getElementById('megaList').classList.add('active');
-                document.getElementById('mksTvList').classList.add('active');
-                document.getElementById('mksStarList').classList.add('active');
-                document.getElementById('iconMega').className = "fas fa-chevron-up";
-                document.getElementById('iconSony').className = "fas fa-chevron-up";
-                document.getElementById('iconStar').className = "fas fa-chevron-up";
-            }
-
-            for (let i = 0; i < cards.length; i++) {
-                let title = cards[i].innerText.toLowerCase();
-                if (title.includes(input)) {
-                    cards[i].style.display = "flex";
-                } else {
-                    cards[i].style.display = "none";
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                let input = document.getElementById('searchInput').value.toLowerCase();
+                let cards = document.getElementsByClassName('server-card');
+                
+                if(input.length > 0) {
+                    document.getElementById('megaList').classList.add('active');
+                    document.getElementById('mksTvList').classList.add('active');
+                    document.getElementById('mksStarList').classList.add('active');
+                    document.getElementById('iconMega').className = "fas fa-chevron-up";
+                    document.getElementById('iconSony').className = "fas fa-chevron-up";
+                    document.getElementById('iconStar').className = "fas fa-chevron-up";
                 }
-            }
+
+                for (let i = 0; i < cards.length; i++) {
+                    let title = cards[i].innerText.toLowerCase();
+                    cards[i].style.display = title.includes(input) ? "flex" : "none";
+                }
+            }, 300);
         };
 
         // --- 4. EXCLUSIVE CHANNELS DATA ---
@@ -307,11 +306,11 @@
                         vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-globe"></i> WEB PLAYER ACTIVE</div><iframe src="${ch.url}" style="border:none; width:100%; height:100%; display:block;" frameborder="0" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen="true"></iframe>`;
                     } 
                     else if (ch.isSonyAPI) {
-                        vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-shield-alt"></i> SONY API PLAYER</div><iframe src="https://allinonereborn2.online/sony/ptest1.html?id=${ch.id}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true"></iframe>`;
+                        vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-shield-alt"></i> SONY API PLAYER</div><iframe src="https://allinonereborn2.online/sony/ptest1.html?id=${ch.id}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true" allow="encrypted-media"></iframe>`;
                     }
                     else if (ch.isStarAPI) {
-                        let fUrl = ch.url && ch.url.includes('pind') ? ch.url : (`https://jtvxweb.pages.dev/pind?id=${ch.id}`);
-                        vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-exclamation-triangle"></i> TAP PLAY 2 TIMES TO BYPASS ADS</div><iframe src="${fUrl}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true"></iframe>`;
+                        let embedUrl = ch.url && ch.url.startsWith('http') ? ch.url : `https://jjtvxweb.pages.dev/pind?id=${ch.id}`;
+                        vBox.innerHTML = `<div class="ad-warning"><i class="fas fa-exclamation-triangle"></i> TAP PLAY 2 TIMES TO BYPASS ADS</div><iframe src="${embedUrl}" style="border:none; width:100%; height:100%; display:block;" allowfullscreen="true" allow="encrypted-media"></iframe>`;
                     }
                     else {
                         let finalHeaders = ch.headers ? { ...ch.headers } : null;
@@ -333,7 +332,7 @@
             });
         };
 
-        // --- 6. DATA LOADING & CREATING CARDS ---
+        // --- 6. DATA LOADING & CREATING CARDS (UPDATED) ---
         function loadChannels() {
             const megaList = document.getElementById('megaList');
             Object.keys(CHANNELS).forEach(key => {
@@ -342,12 +341,13 @@
 
             const proxyBase = "https://mkscricket.mks-cricket.workers.dev/?url=";
             const sonyJsonUrl = atob('aHR0cHM6Ly9hbGxpbm9uZXJlYm9ybjIub25saW5lL3Nvbnkvc2xpdjMuanNvbg==');
-            
-            // 🔥 UPDATED STAR URL 🔥
-            const starJsonUrl = atob('aHR0cHM6Ly9qanR2eHdlYi5wYWdlcy5kZXYvanN0cjR3ZWIuanNvbg==');
+            const starJsonUrl = "https://jjtvxweb.pages.dev/jstr4web.json";
+            const cookieJsonUrl = "https://allinonereborn2.online/jtv-fetch/jstarcookie/cookie.json";
 
+            // Load Sony Channels
             fetch(proxyBase + encodeURIComponent(sonyJsonUrl)).then(res => res.json()).then(data => {
                 const tvList = document.getElementById('mksTvList');
+                tvList.innerHTML = ""; 
                 for (const key in data) {
                     let item = data[key];
                     if(item.title || item.name) {
@@ -356,10 +356,12 @@
                         tvList.appendChild(createChannelCard(mappedData));
                     }
                 }
-            }).catch(e => console.log("Sony API Error"));
+            }).catch(e => console.log("Sony API Error", e));
 
+            // Load Star Channels
             fetch(proxyBase + encodeURIComponent(starJsonUrl)).then(res => res.json()).then(data => {
                 const starList = document.getElementById('mksStarList');
+                starList.innerHTML = ""; 
                 for (const key in data) {
                     let item = data[key];
                     if(item.title || item.name) {
@@ -368,7 +370,7 @@
                         starList.appendChild(createChannelCard(mappedData));
                     }
                 }
-            }).catch(e => console.log("Star API Error"));
+            }).catch(e => console.log("Star API Error", e));
         }
 
         function createChannelCard(ch) {
@@ -385,7 +387,8 @@
             card.onclick = () => triggerChannelUnlock(ch);
             return card;
         }
-// --- 7. CHECK URL PARAMETER LOGIC ---
+
+        // --- 7. CHECK URL PARAMETER LOGIC ---
         function checkDirectUrl() {
             const urlParams = new URLSearchParams(window.location.search);
             const reqId = urlParams.get('id');
