@@ -46,6 +46,12 @@
         .logo { font-size: 22px; font-weight: 900; letter-spacing: 2px; background: linear-gradient(90deg, #fff, var(--accent-primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; }
         .container { max-width: 800px; margin: 0 auto; padding: 15px; }
 
+        /* SEARCH BAR */
+        .search-container { position: relative; margin: 20px 0; }
+        .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+        .search-input { width: 100%; padding: 14px 15px 14px 45px; border-radius: 12px; border: 1px solid var(--border-glass); background: rgba(255, 255, 255, 0.03); color: #fff; outline: none; font-size: 14px; transition: 0.3s; }
+        .search-input:focus { border-color: var(--accent-primary); background: rgba(0, 198, 255, 0.05); }
+
         /* TELEGRAM BUTTON */
         .tg-btn { display: block; width: 100%; padding: 14px; background: linear-gradient(135deg, #0088cc, #00aaff); color: #fff; text-align: center; font-weight: 800; font-size: 14px; letter-spacing: 1px; border-radius: 8px; text-decoration: none; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 136, 204, 0.3); transition: 0.3s; border: none; cursor: pointer; }
         .tg-btn:hover { background: linear-gradient(135deg, #0077b3, #0088cc); transform: translateY(-2px); }
@@ -124,6 +130,12 @@
         </div>
 
         <div id="qualityBox"></div>
+
+        <!-- NEW: SEARCH BAR -->
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchInput" class="search-input" onkeyup="searchChannels()" placeholder="Search channels here...">
+        </div>
 
         <div class="section-heading" onclick="toggleCategory('megaList', 'iconMega')">
             <i class="fas fa-rocket" style="color:var(--accent-primary);"></i> Mega Collection <i id="iconMega" class="fas fa-chevron-up" style="margin-left:auto;"></i>
@@ -224,9 +236,34 @@
             }
         };
 
-        // --- 4. EXCLUSIVE CHANNELS DATA (RESTORED ALL) ---
+        // --- NEW: SEARCH LOGIC ---
+        window.searchChannels = function() {
+            let input = document.getElementById('searchInput').value.toLowerCase();
+            let cards = document.getElementsByClassName('server-card');
+            
+            // Expand all lists when searching so users can see the matching results
+            if(input.length > 0) {
+                document.getElementById('megaList').classList.add('active');
+                document.getElementById('mksTvList').classList.add('active');
+                document.getElementById('mksStarList').classList.add('active');
+                document.getElementById('iconMega').className = "fas fa-chevron-up";
+                document.getElementById('iconSony').className = "fas fa-chevron-up";
+                document.getElementById('iconStar').className = "fas fa-chevron-up";
+            }
+
+            for (let i = 0; i < cards.length; i++) {
+                let title = cards[i].innerText.toLowerCase();
+                if (title.includes(input)) {
+                    cards[i].style.display = "flex";
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+        };
+
+        // --- 4. EXCLUSIVE CHANNELS DATA ---
         const CHANNELS = {
-            sony_ten3: { title: "IND vs SL HINDI", icon: "fas fa-tv", type: "dash", pin: "1111", url: "https://jiotvmblive.cdn.jio.com/bpk-tv/Ten_3_MOB/WDVLive/index.mpd", kid: "68318f7c97c55ba6ab8d0398a88fed3e", key: "d312fb3325b4eb9462b4a0d2b6794adf", dynamicCookieUrl: "https://allrounder2-0.pages.dev/api/Sony-3.json", headers: { "Referer": "https://www.jiotv.com/", "User-Agent": "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6" } },
+            sony_ten3: { title: "Sony Ten 3 HD", icon: "fas fa-tv", type: "dash", pin: "1111", url: "https://jiotvmblive.cdn.jio.com/bpk-tv/Ten_3_MOB/WDVLive/index.mpd", kid: "68318f7c97c55ba6ab8d0398a88fed3e", key: "d312fb3325b4eb9462b4a0d2b6794adf", dynamicCookieUrl: "https://allrounder2-0.pages.dev/api/Sony-3.json", headers: { "Referer": "https://www.jiotv.com/", "User-Agent": "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6" } },
             cricbuzz_live: { title: "Cricbuzz Live", icon: "fas fa-baseball-ball", type: "dash", pin: "2222", url: "https://a96aivottlinear-a.akamaihd.net/OTTB/pdx-nitro/live/clients/dash/enc/ezxzrnbccf/out/v1/8d7e9f7b9d2040daa87ffa8a5789cfad/cenc.mpd", kid: "3448cef71b3ff74e7ccf1ceb639320cb", key: "e096d49c986fe62f713fcb489bbf8d91", headers: { "Referer": "https://www.cricbuzz.com/", "User-Agent": "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36" } },
             ind_sl: { title: "IND vs SL", icon: "fas fa-star", pin: "3333", url: "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8", isIframe: true },
             willow: { title: "Willow TV", icon: "fas fa-baseball-ball", pin: "4444", url: "https://amg01269-amg01269c1-sportstribal-emea-5204.playouts.now.amagi.tv/ts-eu-w1-n2/playlist/amg01269-willowtvfast-willowplus-sportstribalemea/playlist.m3u8", type: "hls" },
@@ -239,7 +276,7 @@
             disc_kids: { title: "Discovery Kids", icon: "fas fa-child", pin: "0000", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Discoverykids2/default/manifest.mpd", kid: "601f58d4b7094d2baf78c85d1d9cb6c9", key: "609e0cc03198455fa36fd2cc3e7f940d" },
             korean: { title: "Korean Dramas", icon: "fas fa-theater-masks", pin: "0000", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Koreandramas2/default/manifest.mpd", kid: "ed197e7253c04946903f03bad9afac91", key: "99ebb8683ea74b70a9fda1cbdc2cc1b4" },
             zoom: { title: "Zoom TV", icon: "fas fa-music", pin: "0000", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zoom2/default/manifest.mpd", kid: "86edec9e3b7d4042a4d4a1ca14f847ee", key: "9def4315f0004019a3705bcb3cf30ca3" },
-         anmol_cin: { title: "Zee Anmol Cinema", icon: "fas fa-video", pin: "0000", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeeanmolcinema/default/manifest.mpd", kid: "812411cba8bc42c79eb2b19cd78ad3f3", key: "468a0b8d3d5d42d8a5c41bb875390a74" },
+            anmol_cin: { title: "Zee Anmol Cinema", icon: "fas fa-video", pin: "0000", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeeanmolcinema/default/manifest.mpd", kid: "812411cba8bc42c79eb2b19cd78ad3f3", key: "468a0b8d3d5d42d8a5c41bb875390a74" },
             zee_anmol: { title: "Zee Anmol", icon: "fas fa-tv", pin: "0000", type: "dash", url: "https://d1g8wgjurz8via.cloudfront.net/bpk-tv/Zeeanmol/default/manifest.mpd", kid: "4023613457774cbeb71a62c339970e63", key: "1c3e9fce5f014542be9cd1f749181204" }
         };
 
@@ -295,7 +332,8 @@
                 }, 300);
             });
         };
- // --- 6. DATA LOADING & CREATING CARDS ---
+
+        // --- 6. DATA LOADING & CREATING CARDS ---
         function loadChannels() {
             const megaList = document.getElementById('megaList');
             Object.keys(CHANNELS).forEach(key => {
@@ -304,7 +342,9 @@
 
             const proxyBase = "https://mkscricket.mks-cricket.workers.dev/?url=";
             const sonyJsonUrl = atob('aHR0cHM6Ly9hbGxpbm9uZXJlYm9ybjIub25saW5lL3Nvbnkvc2xpdjMuanNvbg==');
-            const starJsonUrl = atob('aHR0cHM6Ly9qdHZ4d2ViLnBhZ2VzLmRldi9qc3RyNHdlYi5qc29u');
+            
+            // 🔥 UPDATED STAR URL 🔥
+            const starJsonUrl = atob('aHR0cHM6Ly9qanR2eHdlYi5wYWdlcy5kZXYvanN0cjR3ZWIuanNvbg==');
 
             fetch(proxyBase + encodeURIComponent(sonyJsonUrl)).then(res => res.json()).then(data => {
                 const tvList = document.getElementById('mksTvList');
@@ -345,8 +385,7 @@
             card.onclick = () => triggerChannelUnlock(ch);
             return card;
         }
-
-        // --- 7. CHECK URL PARAMETER LOGIC ---
+// --- 7. CHECK URL PARAMETER LOGIC ---
         function checkDirectUrl() {
             const urlParams = new URLSearchParams(window.location.search);
             const reqId = urlParams.get('id');
