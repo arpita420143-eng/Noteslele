@@ -1,26 +1,3 @@
 {
-  "Star Sports 1 Hindi HD": "__hdnea__=st=1790554547~exp=1790576147~acl=/bpk-tv/Star_Sports_HD1_Hindi_BTS/WDVLive/*~hmac=bfd7b7f8a3682bb50de68e62076c261267f53e1f06a4f26a93612498fa526259",
-  "Star Sports 1 Hindi": "__hdnea__=st=1790558687~exp=1790580287~acl=/bpk-tv/Star_Sports_1_Hindi_BTS/WDVLive/*~hmac=0abedb90ad312e22da78bdac257736c8e57b93219e43a16f19228516374bc1a2",
-  "Star Sports 1 HD": "__hdnea__=st=1790558956~exp=1790580556~acl=/bpk-tv/Star_Sports_HD1_BTS/WDVLive/*~hmac=4da46a745a7756c185baa366b69ab692ab711dee72e183a970b66f19e9fe5985",
-  "Star Sports 1": "__hdnea__=st=1790559001~exp=1790580601~acl=/bpk-tv/Star_Sports_1_BTS/WDVLive/*~hmac=09dc34c552e60fdebdd85a7ebc2266c3c0e200abdd25954433b42ae446e40899",
-  "Star Sports 2 HD": "__hdnea__=st=1790559272~exp=1790580872~acl=/bpk-tv/Star_Sports_HD2_BTS/WDVLive/*~hmac=b762ee5096eadc8c211383c12a188307bdcc5b451ef8b06586e6d4c04db8bfc8",
-  "Star Sports 2": "__hdnea__=st=1790559317~exp=1790580917~acl=/bpk-tv/Star_Sports_2_BTS/WDVLive/*~hmac=9cd1fee7e4c8647962d04cd34e46d3528cde8e024142273bc74572d42345400f",
-  "Star Sports 2 Hindi HD": "__hdnea__=st=1790564018~exp=1790585618~acl=/bpk-tv/StarSportsHD2Hin_BTS/WDVLive/*~hmac=20b406e8858303002cd88ca8f0aba4b2d7caa325a138cf28b997b2b7e2e3672c",
-  "Star Sports 2 Hindi": "__hdnea__=st=1790564126~exp=1790585726~acl=/bpk-tv/StarSports2Hin_BTS/WDVLive/*~hmac=1bfba797dd378304b72f798cd1db4497ebde47c005e07461730be3793e894ec2",
-  "Star Sports 3": "__hdnea__=st=1790564189~exp=1790585789~acl=/bpk-tv/Star_Sports_3_BTS/WDVLive/*~hmac=c07abe3aae143a98edf9246033c182a6791c0931d7c783c2572bbceadd5f548d",
-  "Star Sports Select 1 HD": "__hdnea__=st=1790558768~exp=1790580368~acl=/bpk-tv/Star_Sports_Select_HD_1_BTS/WDVLive/*~hmac=adfc939d1b6af329f6bbf1281d330335045adf7e54ded5f88a8f9ab05c638543",
-  "Star Sports Select 1": "__hdnea__=st=1790559001~exp=1790580601~acl=/bpk-tv/Star_Sports_Select_1_BTS/WDVLive/*~hmac=4245e105c3fb1fc8fce9439825acbf4c5a58de291710052b32970c63a73007a6",
-  "Star Sports Select 2 HD": "__hdnea__=st=1790558768~exp=1790580368~acl=/bpk-tv/Star_Sports_Select_HD_2_BTS/WDVLive/*~hmac=04f177d4ea7ea3ff1bf1b6bca6aff8339cc5781150a4096828c4500852bb98a6",
-  "Star Sports Select 2": "__hdnea__=st=1790559053~exp=1790580653~acl=/bpk-tv/Star_Sports_Select_2_BTS/WDVLive/*~hmac=25ce1d28901463c11c6e9b92ccd6d04d14174c14522ec326bac6dabdf3e7a952",
-  "Star Sports 1 Tamil HD": "__hdnea__=st=1790563233~exp=1790584833~acl=/bpk-tv/Star_Sports_1_Tamil_HD_BTS/WDVLive/*~hmac=34de646278d416b42f57f212bc2c172a996aceafa4d933418bb34d4620d6084a",
-  "Star Sports 1 Tamil": "__hdnea__=st=1790563319~exp=1790584919~acl=/bpk-tv/Star_Sports_1_Tamil_BTS/WDVLive/*~hmac=48d5a0b481b2b1784e675ca1b6be1409c7ff7c8384d13f0e050f3a80310d14f6",
-  "Star Sports 2 Tamil HD": "__hdnea__=st=1790563973~exp=1790585573~acl=/bpk-tv/Star_Sports2_Tamil_HD_BTS/WDVLive/*~hmac=e0f72e0e1a677e296604d907882d74a4bc936e720fff5138ddad4aa584e3f61e",
-  "Star Sports 2 Tamil": "__hdnea__=st=1790564072~exp=1790585672~acl=/bpk-tv/StarSports2Tamil_BTS/WDVLive/*~hmac=d42d40f7ce73a69d601f175a0cfce5e40bbc189eeab4eb11606531e70f3b8128",
-  "Star Sports 1 Telugu HD": "__hdnea__=st=1790563321~exp=1790584921~acl=/bpk-tv/Star_Sports_1_Telugu_HD_BTS/WDVLive/*~hmac=f5262176036ec5232a282ebef24c0791b25ecafb0cf9cccd528ca0d73809601b",
-  "Star Sports 1 Telugu": "__hdnea__=st=1790564192~exp=1790585792~acl=/bpk-tv/Star_Sports_1_Telugu_BTS/WDVLive/*~hmac=c2c0487bd04347885b0330523b5ae316ce6bff36d518174fabd5e81784c5d2a5",
-  "Star Sports 2 Telugu HD": "__hdnea__=st=1790564136~exp=1790585736~acl=/bpk-tv/Star_Sports2_Telugu_HD_BTS/WDVLive/*~hmac=6838ec66d7fd33f24c2b5a1788910b126f1c6350e340fe0d6c5f48cf4e63b2f1",
-  "Star Sports 2 Telugu": "__hdnea__=st=1790564189~exp=1790585789~acl=/bpk-tv/StarSports2Telugu_BTS/WDVLive/*~hmac=3e80e311edc5e9260d06326a1e394fff13f3e95d49ff48eaa7495190a872dae5",
-  "Star Sports 1 Kannada": "__hdnea__=st=1790564018~exp=1790585618~acl=/bpk-tv/Star_Sports_1_Kannada_BTS/WDVLive/*~hmac=cf6922ec25205c149bb85dd52e94884c778a0347a225f0509a29eea2a70ab706",
-  "Star Sports 2 Kannada": "__hdnea__=st=1790559542~exp=1790581142~acl=/bpk-tv/Star_Sports_2_Kannada_BTS/WDVLive/*~hmac=95c07233bc58057b947ce5500dc908f48b101a2b98dfcb3b80a3f5d3da30a939",
-  "default_cookie": ""
+  "cookie": "__hdnea__=st=1791045865~exp=1791067465~acl=/bpk-tv/StarSportsHD2Hin_BTS/WDVLive/*~hmac=e89c6595da39b84bd4c0ee5200e92ea5e3add62033e3143ede9bbab586996448"
 }
