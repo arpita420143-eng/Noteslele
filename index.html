@@ -15,7 +15,7 @@ button{border:0;cursor:pointer;color:#fff;font:inherit}
 header{position:sticky;top:0;z-index:10;background:#0f1626;border-bottom:1px solid #1e293b;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
 .logo{font-size:20px;font-weight:900}.logo span{color:#ff7b3d}
 .btn{padding:7px 13px;border-radius:99px;font-size:12px;font-weight:700;background:#1e293b}
-.tg{background:#229ED9}.play{background:#ff7b3d;color:#000}
+.tg{background:#229ED9}.play{background:#ff7b3d;color:#000}.dim{opacity:.55}
 main{max-width:1000px;margin:auto;padding:14px}
 .top{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .top input{flex:1;min-width:160px;padding:9px 14px;border-radius:99px;border:1px solid #26334d;background:#131b2e;color:#fff;outline:0}
@@ -25,12 +25,13 @@ main{max-width:1000px;margin:auto;padding:14px}
 .info{padding:10px;display:grid;gap:6px}.info h3{font-size:14px}.info small{color:#94a3b8;font-size:12px}
 .row{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
 .live{color:#ff4d63;font-weight:800;font-size:11px}
+.up{color:#f59e0b;font-weight:700;font-size:11px}
 .modal{position:fixed;inset:0;z-index:50;background:#000d;display:flex;align-items:center;justify-content:center;padding:10px}
 .modal[hidden]{display:none}
 .box{width:min(850px,100%);background:#131b2e;border-radius:12px;overflow:hidden}
 .stage{position:relative;aspect-ratio:16/9;background:#000}
 .stage video,.stage iframe,.shaka-video-container{width:100%;height:100%;border:0}
-.pmsg{position:absolute;inset:0;display:grid;place-items:center;background:#000c;padding:12px;text-align:center;font-size:13px}.pmsg[hidden]{display:none}
+.pmsg{position:absolute;inset:0;z-index:25;display:grid;place-items:center;background:#0b0f19;padding:16px;text-align:center;font-size:14px;color:#cbd5e1}.pmsg[hidden]{display:none}
 .bar{padding:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 .srv.on{background:#ff7b3d;color:#000}
 </style>
@@ -71,12 +72,12 @@ main{max-width:1000px;margin:auto;padding:14px}
 </div>
 
 <script>
-const FEEDS=[
-  "https://rjson.snackonline223.workers.dev/events.json",
+const EVENT_URL="https://rjson.snackonline223.workers.dev/events.json";
+const SYNC_URLS=[
   "https://sonujson-v5.pages.dev/Data/sports.json",
   "https://sonujson-v7.pages.dev/Data/sports.json"
 ];
-let list=[],tab="all",cur,pl,ui,$=id=>document.getElementById(id);
+let list=[],tab="all",cur,pl,ui,token="",$=id=>document.getElementById(id);
 
 function setTab(t){
   tab=t;
@@ -85,50 +86,95 @@ function setTab(t){
   render();
 }
 
+function dec(v){
+  if(typeof v!="string")return"";
+  v=v.trim();
+  if(v.startsWith("aHR0c")){try{v=atob(v)}catch(e){}}
+  if(v.startsWith("https%3A")||v.startsWith("http%3A")){try{v=decodeURIComponent(v)}catch(e){}}
+  if(v.startsWith("//"))v="https:"+v;
+  return v;
+}
+
 function getDrm(o){
-  if(!o)return null;
+  if(!o||typeof o!="object")return null;
   if(o.clearKeys)return o.clearKeys;
-  if(o.drm&&o.drm.clearKeys)return o.drm.clearKeys;
-  if(o.drm&&o.drm.keyId&&o.drm.key)return{[o.drm.keyId]:o.drm.key};
+  if(o.drm?.clearKeys)return o.drm.clearKeys;
+  if(o.drm?.keyId&&o.drm?.key)return{[o.drm.keyId]:o.drm.key};
   if(o.keyId&&o.key)return{[o.keyId]:o.key};
+  if(o.kid&&o.k)return{[o.kid]:o.k};
   if(typeof o.drmLicense=="string"&&o.drmLicense.includes(":")){let p=o.drmLicense.split(":");return{[p[0].trim()]:p[1].trim()}}
   return null;
 }
 
-function getStreams(x){
-  let a=[],s=new Set(),add=(n,u,d)=>{if(typeof u=="string"&&u.startsWith("http")&&!s.has(u)){s.add(u);a.push({n:n||"Server "+(a.length+1),u:u.trim(),d})}};
-  let arr=x.streams||x.channels||x.links||x.servers||[];
-  if(Array.isArray(arr))arr.forEach((v,i)=>typeof v=="string"?add("Server "+(i+1),v):add(v.name||v.title,v.url||v.link||v.m3u8||v.mpd||v.stream_url,getDrm(v)));
-  add("HD",x.adfree_url||x.dai_url||x.m3u8||x.mpd||x.stream_url||x.url||x.link,getDrm(x));
-  if(x.backup_url)add("Backup",x.backup_url,getDrm(x));
-  return a;
+function getStreams(root){
+  let out=[],seen=new Set(),rootDrm=getDrm(root);
+  const skipKey=/banner|poster|image|thumb|logo|icon|avatar|flag|bg/i;
+  const skipExt=/\.(jpg|jpeg|png|webp|gif|svg|ico)(\?|$)/i;
+  function walk(node,label,pDrm){
+    if(!node)return;
+    if(typeof node=="string"){
+      let u=dec(node);
+      if(u.startsWith("http")&&!skipExt.test(u)){
+        if(token&&/(__hdnea__|hdnea)=/.test(u))u=u.replace(/(__hdnea__|hdnea)=[^&]+/,token);
+        if(!seen.has(u)){
+          seen.add(u);
+          let n=(label&&!/^(url|link|src|stream|m3u8|mpd|0|1|2|3)$/i.test(label))?label.replace(/_/g," ").toUpperCase():"Server "+(out.length+1);
+          out.push({n,u,d:pDrm||rootDrm});
+        }
+      }
+      return;
+    }
+    if(Array.isArray(node)){node.forEach((v,i)=>walk(v,v?.name||v?.title||v?.lang||("Server "+(i+1)),pDrm));return}
+    if(typeof node=="object"){
+      let d=getDrm(node)||pDrm,own=node.name||node.title||node.label||node.lang||label;
+      for(const[k,v]of Object.entries(node))if(!skipKey.test(k))walk(v,typeof v=="string"?(node.name||node.title||k):own,d);
+    }
+  }
+  walk(root,"",rootDrm);
+  return out;
+}
+
+const toArr=j=>!j?[]:Array.isArray(j)?j:(j.events||j.matches||j.data||j.channels||j.live||Object.values(j).find(Array.isArray)||[]);
+
+async function fetchJ(u){
+  try{const r=await fetch(u,{cache:"no-store"});return r.ok?await r.json():null}catch(e){return null}
 }
 
 async function loadFeed(){
   $("grid").innerHTML="Loading...";
-  for(const u of FEEDS){
-    try{
-      const r=await fetch(u,{cache:"no-store"});
-      if(!r.ok)continue;
-      const j=await r.json();
-      const raw=Array.isArray(j)?j:(j.events||j.matches||j.data||j.channels||Object.values(j).find(Array.isArray)||[]);
-      if(raw.length){
-        list=raw.map((x,i)=>{
-          let st=getStreams(x);
-          let lv=x.is_live||x.live||String(x.status||"").toLowerCase().includes("live")||st.length>0;
-          return{i,t:x.title||x.match_name||x.event_name||x.name||"Match "+(i+1),g:x.tournament||x.league||x.event_category||"Sports",img:x.banner||x.poster||x.image||x.thumb||x.src||"",lv,st};
-        });
-        return render();
-      }
-    }catch(e){}
+  let evJson=await fetchJ(EVENT_URL),syncJson=null;
+  for(const u of SYNC_URLS){syncJson=await fetchJ(u);if(syncJson)break}
+  if(syncJson){
+    let m=JSON.stringify(syncJson).match(/(__hdnea__|hdnea)=[^"'&\s\\]+/);
+    if(m)token=m[0];
   }
-  $("grid").innerHTML="Feed load nahi hua. Refresh dabao.";
+  const mapItem=(x,idx)=>({
+    id:String(x.id||x.match_id||x.channel_id||idx),
+    t:x.title||x.match_name||x.event_name||x.name||"Match "+(idx+1),
+    g:x.tournament||x.league||x.event_category||x.category||"Sports",
+    img:dec(x.banner||x.poster||x.image||x.thumb||x.logo||x.src||""),
+    lv:/live/i.test(String(x.status||""))||x.is_live===true||x.live===true,
+    st:getStreams(x)
+  });
+
+  let evList=toArr(evJson).map((x,i)=>mapItem(x,"e"+i));
+  let syList=toArr(syncJson).map((x,i)=>mapItem(x,"s"+i));
+
+  syList.forEach(s=>{
+    let hit=evList.find(e=>e.id===s.id||e.t.toLowerCase()===s.t.toLowerCase());
+    if(hit){hit.st.push(...s.st);if(s.st.length)hit.lv=true}
+    else if(s.st.length){s.lv=true;evList.push(s)}
+  });
+
+  evList.sort((a,b)=>(b.st.length>0)-(a.st.length>0));
+  list=evList.map((x,i)=>({...x,i}));
+  list.length?render():($("grid").innerHTML="Feed load nahi hua. Refresh dabao.");
 }
 
 function render(){
   const q=$("q").value.toLowerCase();
-  const f=list.filter(m=>(tab!="live"||m.lv)&&(m.t+" "+m.g).toLowerCase().includes(q));
-  $("grid").innerHTML=f.length?f.map(m=>`<div class="card" onclick="openP(${m.i})">${m.img?`<img src="${m.img}" onerror="this.remove()">`:""}<div class="info"><h3>${m.t}</h3><small>${m.g}</small><div class="row"><span class="live">${m.lv?"● LIVE":"UPCOMING"}</span><span class="btn play">▶ Watch</span></div></div></div>`).join(""):"Koi match nahi mila.";
+  const f=list.filter(m=>(tab!="live"||m.lv||m.st.length>0)&&(m.t+" "+m.g).toLowerCase().includes(q));
+  $("grid").innerHTML=f.length?f.map(m=>`<div class="card" onclick="openP(${m.i})">${m.img?`<img src="${m.img}" onerror="this.remove()">`:""}<div class="info"><h3>${m.t}</h3><small>${m.g}</small><div class="row"><span class="${m.st.length||m.lv?"live":"up"}">${m.st.length?"● LIVE ("+m.st.length+")":m.lv?"● LIVE":"UPCOMING"}</span><span class="btn ${m.st.length?"play":"dim"}">${m.st.length?"▶ Watch":"Soon"}</span></div></div></div>`).join(""):"Koi match nahi mila.";
 }
 
 async function stopV(){
@@ -139,7 +185,11 @@ async function stopV(){
 
 function openP(i){
   cur=list[i];$("ptitle").textContent=cur.t;$("modal").hidden=false;
-  if(!cur.st.length){$("srvs").innerHTML="";$("ext").hidden=true;$("pmsg").textContent="Stream available nahi hai";$("pmsg").hidden=false;return}
+  if(!cur.st.length){
+    $("sbox").hidden=true;$("ifr").hidden=true;$("srvs").innerHTML="";$("ext").hidden=true;
+    $("pmsg").textContent="Match abhi start nahi hua hai. Live hone par Refresh karein.";
+    $("pmsg").hidden=false;return;
+  }
   $("srvs").innerHTML=cur.st.map((s,k)=>`<button class="btn srv ${k?"":"on"}" onclick="play(${k})">${s.n}</button>`).join("");
   play(0);
 }
@@ -149,11 +199,12 @@ async function play(k){
   document.querySelectorAll(".srv").forEach((b,i)=>b.classList.toggle("on",i==k));
   $("ext").href=s.u;$("ext").hidden=false;
   await stopV();
-  $("pmsg").textContent="Loading...";$("pmsg").hidden=false;
+  $("sbox").hidden=true;$("ifr").hidden=true;
+  $("pmsg").textContent="Stream load ho raha hai...";$("pmsg").hidden=false;
   if(!/\.(m3u8|mpd|mp4)(\?|$)/i.test(s.u)&&/embed|player|\.html|\.php/i.test(s.u)){
-    $("sbox").hidden=true;$("ifr").hidden=false;$("ifr").src=s.u;$("pmsg").hidden=true;return;
+    $("ifr").hidden=false;$("ifr").src=s.u;$("pmsg").hidden=true;return;
   }
-  $("ifr").hidden=true;$("ifr").src="about:blank";$("sbox").hidden=false;
+  $("ifr").src="about:blank";$("sbox").hidden=false;
   if(window.shaka&&shaka.Player.isBrowserSupported()){
     shaka.polyfill.installAll();
     pl=new shaka.Player();
@@ -161,7 +212,10 @@ async function play(k){
     ui=new shaka.ui.Overlay(pl,$("sbox"),$("vid"));
     if(s.d)pl.configure({drm:{clearKeys:s.d}});
     try{await pl.load(s.u);$("pmsg").hidden=true;$("vid").play().catch(()=>{})}
-    catch(e){$("pmsg").textContent="Stream error. Dusra server ya Direct link try karo."}
+    catch(e){
+      if($("vid").canPlayType("application/vnd.apple.mpegurl")){$("vid").src=s.u;$("pmsg").hidden=true}
+      else{$("sbox").hidden=true;$("pmsg").textContent="Stream error. Dusra server ya Direct ↗ try karo."}
+    }
   }else{$("vid").src=s.u;$("pmsg").hidden=true}
 }
 
