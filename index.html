@@ -4,57 +4,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MKS sports Live</title>
+<title>MKS Sports Live</title>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
+<script src="https://cdn.dashjs.org/v4.7.4/dash.all.min.js"></script>
 
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;background:#080d18;color:white;
- font-family:Arial,sans-serif;
-}
-header{
- padding:18px;background:#111b2d;
- display:flex;justify-content:space-between;
- align-items:center;border-bottom:1px solid #26334b;
-}
-.logo{font-size:22px;font-weight:bold;color:#ffca28}
-.container{padding:15px;max-width:1100px;margin:auto}
-.search{
- width:100%;padding:14px;border-radius:9px;
- border:1px solid #34435b;background:#121c2d;
- color:white;margin-bottom:15px;
-}
-.playerbox{
- background:#000;border-radius:12px;overflow:hidden;
- position:relative;
-}
+body{margin:0;background:#080d18;color:white;font-family:Arial,sans-serif}
+header{padding:18px 20px;background:#111b2d;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #293750}
+.logo{font-size:24px;font-weight:bold;color:#ffca28}
+.container{padding:18px;max-width:1100px;margin:auto}
+input,select,button{font-size:16px;border-radius:10px;padding:14px;background:#17243a;color:white;border:1px solid #34445f}
+input{width:100%;margin-bottom:18px}
+.player{background:#000;border-radius:14px;overflow:hidden}
 video{width:100%;aspect-ratio:16/9;display:block}
-.status{padding:12px;color:#aaa;font-size:13px}
-select,button{
- padding:12px;border-radius:8px;
- background:#17243a;color:white;
- border:1px solid #34435b;
-}
-.controls{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+#status{padding:14px;color:#adb9cc;font-size:14px;min-height:45px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 25px}
 .controls select{flex:1;min-width:130px}
-.section-title{font-size:18px;margin:22px 0 12px}
-.grid{
- display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));
- gap:12px;
-}
-.item{
- background:#142037;border:1px solid #263651;
- border-radius:10px;padding:14px;cursor:pointer;
- min-height:85px;
-}
+button{cursor:pointer}
+button:active,.item:active{opacity:.7}
+h3{margin:25px 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:12px}
+.item{padding:16px;background:#142037;border:1px solid #293b58;border-radius:12px;cursor:pointer;min-height:95px}
+.item strong{display:block;font-size:17px;margin-bottom:9px}
+.item small{color:#9eacc4}
 .item:hover{border-color:#ffca28}
-.item strong{display:block;margin-bottom:8px}
-.item small{color:#9baac2}
-.active{border:1px solid #ffca28}
-footer{text-align:center;color:#718099;padding:25px}
+footer{text-align:center;padding:25px;color:#8492aa}
 </style>
 </head>
 
@@ -67,18 +43,17 @@ footer{text-align:center;color:#718099;padding:25px}
 
 <div class="container">
 
-<input id="search" class="search"
-placeholder="Search match or channel...">
+<input id="search" placeholder="Search match or channel...">
 
-<div class="playerbox">
+<div class="player">
  <video id="video" controls playsinline></video>
 </div>
 
-<div class="status" id="status">Loading sports data...</div>
+<div id="status">Loading sports data...</div>
 
 <div class="controls">
  <select id="sourceSelect">
-  <option value="">Select Stream</option>
+  <option value="">Select Source</option>
  </select>
 
  <select id="speed">
@@ -91,207 +66,168 @@ placeholder="Search match or channel...">
  <button onclick="playSelected()">PLAY</button>
 </div>
 
-<h3 class="section-title">LIVE EVENTS</h3>
+<h3>LIVE EVENTS</h3>
 <div id="events" class="grid"></div>
 
-<h3 class="section-title">TV CHANNELS</h3>
+<h3>TV CHANNELS</h3>
 <div id="channels" class="grid"></div>
 
 </div>
 
-<footer>MKS SPORTS • Universal Video Player</footer>
+<footer>MKS SPORTS • LIVE STREAMING</footer>
 
 <script>
-const JSON_URLS = [
+const JSON_URLS=[
  "https://rjson.snackonline223.workers.dev/events.json",
  "https://sonujson-v5.pages.dev/Data/sports.json",
  "https://sonujson-v7.pages.dev/Data/sports.json"
 ];
 
-const video = document.getElementById("video");
-const statusBox = document.getElementById("status");
-const sourceSelect = document.getElementById("sourceSelect");
+const video=document.getElementById("video");
+const statusBox=document.getElementById("status");
+const sourceSelect=document.getElementById("sourceSelect");
 
-let allEvents = [];
-let allChannels = [];
-let currentHls = null;
-let currentDash = null;
-let selectedSources = [];
+let eventsData=[];
+let channelsData=[];
+let selectedSources=[];
+let hls=null;
+let dash=null;
+let currentIndex=0;
+let fallbackUsed=false;
 
-function status(message){
- statusBox.textContent = message;
+function status(msg){
+ statusBox.textContent=msg;
 }
 
-// Fetch primary JSON, then backups
+// Find stream URL from different JSON formats
+function getURL(obj){
+ if(!obj || typeof obj!=="object")return "";
+ return obj.stream_url || obj.url || obj.file ||
+        obj.src || obj.link || obj.play_url || "";
+}
+
+function normalizeSources(item){
+ if(!item)return [];
+
+ let list=Array.isArray(item.sources)
+  ?item.sources:
+  (getURL(item)?[item]:[]);
+
+ return list.map((s,i)=>{
+  if(typeof s==="string"){
+   return {name:"Source "+(i+1),stream_url:s};
+  }
+
+  return {
+   ...s,
+   name:s.name || s.language || s.label || "Source "+(i+1),
+   stream_url:getURL(s)
+  };
+ }).filter(s=>s.stream_url);
+}
+
+// Load JSON with backup
 async function loadData(){
 
  for(const url of JSON_URLS){
   try{
-   status("Connecting to sports server...");
+   status("Connecting: "+url);
 
-   const response = await fetch(url,{
+   const response=await fetch(url,{
     cache:"no-store"
    });
 
-   if(!response.ok) throw new Error("HTTP "+response.status);
+   if(!response.ok)throw Error("HTTP "+response.status);
 
-   const data = await response.json();
+   const data=await response.json();
 
-   if(Array.isArray(data.events)){
-    allEvents = data.events;
-   }
+   const ev=Array.isArray(data.events)?data.events:[];
+   const ch=Array.isArray(data.channels)?data.channels:[];
 
-   if(Array.isArray(data.channels)){
-    allChannels = data.channels;
-   }
+   if(!ev.length&&!ch.length)throw Error("No events found");
 
-   if(!allEvents.length && !allChannels.length){
-    throw new Error("Invalid JSON structure");
-   }
+   eventsData=ev;
+   channelsData=ch;
 
    status("Sports data loaded successfully");
    render();
    return;
 
-  }catch(error){
-   console.warn(url,error);
+  }catch(e){
+   console.error(e);
   }
  }
 
- status("All JSON servers failed. Please try again.");
+ status("Unable to load JSON. Check server or CORS settings.");
 }
 
-// Normalize stream sources
-function getSources(item){
+function makeCard(item,type,index){
 
- if(Array.isArray(item.sources)){
-  return item.sources;
- }
+ const card=document.createElement("div");
+ card.className="item";
 
- if(item.stream_url){
-  return [item];
- }
+ const title=document.createElement("strong");
+ title.textContent=item.name || item.title || "Live Channel";
 
- return [];
-}
+ const info=document.createElement("small");
+ info.textContent=
+  (item.type || type)+" • "+
+  normalizeSources(item).length+" Sources";
 
-function getType(source){
+ card.append(title,info);
 
- const url = (source.stream_url || "").toLowerCase();
- const type = (source.sourcetype || "").toLowerCase();
+ card.onclick=()=>showSources(item);
 
- if(type.includes("m3u8") || url.includes(".m3u8")){
-  return "hls";
- }
-
- if(type.includes("mpd") || url.includes(".mpd")){
-  return "dash";
- }
-
- if(url.includes(".mp4")){
-  return "mp4";
- }
-
- return "unknown";
+ return card;
 }
 
 function render(){
 
- const eventsBox = document.getElementById("events");
- const channelsBox = document.getElementById("channels");
+ const evBox=document.getElementById("events");
+ const chBox=document.getElementById("channels");
 
- eventsBox.innerHTML = "";
- channelsBox.innerHTML = "";
+ evBox.innerHTML="";
+ chBox.innerHTML="";
 
- allEvents.forEach((event,index)=>{
-
-  const div = document.createElement("div");
-  div.className="item";
-
-  const title=document.createElement("strong");
-  title.textContent=event.name || "Live Event";
-
-  const info=document.createElement("small");
-  info.textContent=
-   (event.type || "SPORTS")+" • "+
-   getSources(event).length+" Sources";
-
-  div.append(title,info);
-
-  div.onclick=()=>showSources(event);
-
-  eventsBox.appendChild(div);
+ eventsData.forEach((e,i)=>{
+  evBox.appendChild(makeCard(e,"LIVE",i));
  });
 
- allChannels.forEach(channel=>{
-
-  const div=document.createElement("div");
-  div.className="item";
-
-  const title=document.createElement("strong");
-  title.textContent=channel.name || "TV Channel";
-
-  const info=document.createElement("small");
-  info.textContent="TV CHANNEL";
-
-  div.append(title,info);
-
-  div.onclick=()=>showSources(channel);
-
-  channelsBox.appendChild(div);
+ channelsData.forEach((c,i)=>{
+  chBox.appendChild(makeCard(c,"TV",i));
  });
 }
 
-// Select event/channel sources
 function showSources(item){
 
- selectedSources=getSources(item);
-
+ selectedSources=normalizeSources(item);
  sourceSelect.innerHTML="";
 
- selectedSources.forEach((source,index)=>{
-
+ selectedSources.forEach((s,i)=>{
   const option=document.createElement("option");
-
-  option.value=index;
-
-  option.textContent=
-   source.name || ("Source "+(index+1));
-
+  option.value=i;
+  option.textContent=s.name;
   sourceSelect.appendChild(option);
  });
 
  if(selectedSources.length){
+  currentIndex=0;
   playSelected();
  }else{
-  status("No streams available");
+  status("No valid stream URL found");
  }
 }
 
-// Player
-function playSelected(){
+function destroyPlayer(){
 
- const index=Number(sourceSelect.value || 0);
- const source=selectedSources[index];
-
- if(!source){
-  status("Please select a source");
-  return;
+ if(hls){
+  hls.destroy();
+  hls=null;
  }
 
- playStream(source.stream_url);
-}
-
-function destroyPlayers(){
-
- if(currentHls){
-  currentHls.destroy();
-  currentHls=null;
- }
-
- if(currentDash){
-  currentDash.reset();
-  currentDash=null;
+ if(dash){
+  dash.reset();
+  dash=null;
  }
 
  video.pause();
@@ -299,36 +235,65 @@ function destroyPlayers(){
  video.load();
 }
 
-function playStream(url){
+function detectType(url,source){
 
- if(!url){
-  status("Invalid stream URL");
+ const type=(source.sourcetype || source.type || "").toLowerCase();
+ const u=url.toLowerCase().split("?")[0];
+
+ if(type.includes("mpd") || u.endsWith(".mpd"))return "dash";
+ if(type.includes("m3u8") || u.endsWith(".m3u8"))return "hls";
+ if(type.includes("mp4") || u.endsWith(".mp4"))return "mp4";
+
+ return "unknown";
+}
+
+function playSelected(){
+
+ const index=Number(sourceSelect.value || 0);
+ playIndex(index);
+}
+
+function playIndex(index){
+
+ if(index<0 || index>=selectedSources.length){
+  status("All available sources failed.");
   return;
  }
 
- destroyPlayers();
+ currentIndex=index;
+ sourceSelect.value=index;
+ fallbackUsed=false;
 
- const type=getType({stream_url:url});
+ const source=selectedSources[index];
+ const url=source.stream_url;
+ const type=detectType(url,source);
 
- status("Connecting to stream...");
+ destroyPlayer();
+
+ status("Loading "+source.name+" ("+type+")...");
 
  if(type==="hls"){
 
   if(Hls.isSupported()){
 
-   currentHls=new Hls();
-
-   currentHls.loadSource(url);
-   currentHls.attachMedia(video);
-
-   currentHls.on(Hls.Events.MANIFEST_PARSED,()=>{
-    status("HLS stream ready");
-    video.play().catch(()=>{});
+   hls=new Hls({
+    enableWorker:true,
+    lowLatencyMode:false,
+    backBufferLength:30
    });
 
-   currentHls.on(Hls.Events.ERROR,(event,data)=>{
+   hls.loadSource(url);
+   hls.attachMedia(video);
+
+   hls.on(Hls.Events.MANIFEST_PARSED,()=>{
+    status("HLS connected. Starting playback...");
+    video.play().catch(()=>status("Press PLAY to start video."));
+   });
+
+   hls.on(Hls.Events.ERROR,(event,data)=>{
     if(data.fatal){
-     status("HLS playback failed: "+data.type);
+     status("HLS error: "+data.details);
+     tryNext();
     }
    });
 
@@ -339,30 +304,35 @@ function playStream(url){
    status("Native HLS playback");
 
   }else{
-   status("HLS not supported on this browser");
+   status("HLS is not supported by this browser");
+   tryNext();
   }
 
  }
 
  else if(type==="dash"){
 
-  currentDash=dashjs.MediaPlayer().create();
+  if(!window.dashjs){
+   status("DASH player library unavailable");
+   tryNext();
+   return;
+  }
 
-  currentDash.initialize(video,url,true);
+  dash=dashjs.MediaPlayer().create();
 
-  currentDash.on(
-   dashjs.MediaPlayer.events.STREAM_INITIALIZED,
-   ()=>{
-    status("DASH stream ready");
+  dash.initialize(video,url,false);
+
+  dash.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED,()=>{
+   status("DASH connected. Starting playback...");
+   video.play().catch(()=>status("Press PLAY to start video."));
+  });
+
+  dash.on(dashjs.MediaPlayer.events.ERROR,()=>{
+   if(!fallbackUsed){
+    status("DASH error. Trying next source...");
+    tryNext();
    }
-  );
-
-  currentDash.on(
-   dashjs.MediaPlayer.events.ERROR,
-   ()=>{
-    status("DASH playback failed. Check stream access and DRM.");
-   }
-  );
+  });
 
  }
 
@@ -370,33 +340,48 @@ function playStream(url){
 
   video.src=url;
   video.play().catch(()=>{});
-  status("MP4 playback");
+  status("MP4 stream loaded");
 
- }
+ }else{
 
- else{
-  status("Unsupported or unknown stream format");
+  status("Unknown stream format. Trying next source...");
+  tryNext();
  }
 }
 
-// Playback speed
+function tryNext(){
+
+ if(fallbackUsed)return;
+ fallbackUsed=true;
+
+ setTimeout(()=>{
+  playIndex(currentIndex+1);
+ },500);
+}
+
+// Playback controls
 document.getElementById("speed").onchange=function(){
  video.playbackRate=Number(this.value);
 };
 
-// Search
+// Search events and channels
 document.getElementById("search").addEventListener("input",function(){
 
- const query=this.value.toLowerCase();
+ const q=this.value.toLowerCase();
 
- document.querySelectorAll(".item").forEach(item=>{
-  item.style.display=
-   item.textContent.toLowerCase().includes(query)
-   ? "" : "none";
+ document.querySelectorAll(".item").forEach(card=>{
+  card.style.display=
+   card.textContent.toLowerCase().includes(q)?"":"none";
  });
 });
 
-// Start
+video.addEventListener("error",()=>{
+ if(!fallbackUsed){
+  status("Video error. Trying another source...");
+  tryNext();
+ }
+});
+
 loadData();
 
 </script>
