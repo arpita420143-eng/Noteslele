@@ -1,316 +1,404 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="referrer" content="no-referrer">
-<title>MKS SPORTS</title>
-<link href="https://cdn.jsdelivr.net/npm/shaka-player@4.11.2/dist/controls.css" rel="stylesheet">
-<script defer src="https://cdn.jsdelivr.net/npm/shaka-player@4.11.2/dist/shaka-player.ui.js"></script>
+<title>MKS sports Live</title>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
-body{background:#0b0f19;color:#fff;padding-bottom:30px}
-a{color:inherit;text-decoration:none}
-button{border:0;cursor:pointer;color:#fff;font:inherit}
-header{position:sticky;top:0;z-index:10;background:#0f1626;border-bottom:1px solid #1e293b;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
-.logo{font-size:20px;font-weight:900}.logo span{color:#ff7b3d}
-.btn{padding:7px 13px;border-radius:99px;font-size:12px;font-weight:700;background:#1e293b}
-.tg{background:#229ED9}.play{background:#ff7b3d;color:#000}.dim{opacity:.55}
-main{max-width:1000px;margin:auto;padding:14px}
-.top{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.top input{flex:1;min-width:160px;padding:9px 14px;border-radius:99px;border:1px solid #26334d;background:#131b2e;color:#fff;outline:0}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
-.card{background:#131b2e;border:1px solid #1e293b;border-radius:12px;overflow:hidden;cursor:pointer}
-.card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#1e293b}
-.info{padding:10px;display:grid;gap:6px}.info h3{font-size:14px}.info small{color:#94a3b8;font-size:12px}
-.row{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
-.live{color:#ff4d63;font-weight:800;font-size:11px}
-.up{color:#f59e0b;font-weight:700;font-size:11px}
-.modal{position:fixed;inset:0;z-index:50;background:#000d;display:flex;align-items:center;justify-content:center;padding:10px}
-.modal[hidden]{display:none}
-.box{width:min(850px,100%);background:#131b2e;border-radius:12px;overflow:hidden}
-.stage{position:relative;aspect-ratio:16/9;background:#000}
-.stage video,.stage iframe,.shaka-video-container{width:100%;height:100%;border:0}
-.pmsg{position:absolute;inset:0;z-index:25;display:grid;place-items:center;background:#0b0f19;padding:16px;text-align:center;font-size:14px;color:#cbd5e1}.pmsg[hidden]{display:none}
-.live-tag{position:absolute;top:10px;left:10px;z-index:20;background:#ef4444;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;pointer-events:none}
-.bar{padding:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center}
-.srv.on{background:#ff7b3d;color:#000}
-.srv.bad{opacity:.45;text-decoration:line-through}
-.shaka-seek-bar-container,.shaka-current-time{display:none!important}
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080d18;color:white;
+ font-family:Arial,sans-serif;
+}
+header{
+ padding:18px;background:#111b2d;
+ display:flex;justify-content:space-between;
+ align-items:center;border-bottom:1px solid #26334b;
+}
+.logo{font-size:22px;font-weight:bold;color:#ffca28}
+.container{padding:15px;max-width:1100px;margin:auto}
+.search{
+ width:100%;padding:14px;border-radius:9px;
+ border:1px solid #34435b;background:#121c2d;
+ color:white;margin-bottom:15px;
+}
+.playerbox{
+ background:#000;border-radius:12px;overflow:hidden;
+ position:relative;
+}
+video{width:100%;aspect-ratio:16/9;display:block}
+.status{padding:12px;color:#aaa;font-size:13px}
+select,button{
+ padding:12px;border-radius:8px;
+ background:#17243a;color:white;
+ border:1px solid #34435b;
+}
+.controls{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+.controls select{flex:1;min-width:130px}
+.section-title{font-size:18px;margin:22px 0 12px}
+.grid{
+ display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));
+ gap:12px;
+}
+.item{
+ background:#142037;border:1px solid #263651;
+ border-radius:10px;padding:14px;cursor:pointer;
+ min-height:85px;
+}
+.item:hover{border-color:#ffca28}
+.item strong{display:block;margin-bottom:8px}
+.item small{color:#9baac2}
+.active{border:1px solid #ffca28}
+footer{text-align:center;color:#718099;padding:25px}
 </style>
 </head>
+
 <body>
+
 <header>
-  <div class="logo"><span>MKS</span> SPORTS</div>
-  <div style="display:flex;gap:6px">
-    <button class="btn" onclick="loadFeed()">↻ Refresh</button>
-    <a class="btn tg" href="https://t.me/MKSsports_3" target="_blank">Telegram</a>
-  </div>
+ <div class="logo">MKS SPORTS</div>
+ <div>LIVE PLAYER</div>
 </header>
 
-<main>
-  <div class="top">
-    <input id="q" placeholder="Search match..." oninput="render()">
-    <button class="btn play" id="bAll" onclick="setTab('all')">All</button>
-    <button class="btn" id="bLive" onclick="setTab('live')">Live</button>
-  </div>
-  <div id="grid" class="grid">Loading...</div>
-</main>
+<div class="container">
 
-<div id="modal" class="modal" hidden>
-  <div class="box">
-    <div class="bar"><b id="ptitle">MKS SPORTS</b><button class="btn" onclick="closeP()">✕</button></div>
-    <div class="stage">
-      <span class="live-tag">● LIVE</span>
-      <div id="sbox" class="shaka-video-container" data-shaka-player-container>
-        <video id="vid" autoplay playsinline data-shaka-player></video>
-      </div>
-      <iframe id="ifr" allow="autoplay;encrypted-media;fullscreen" allowfullscreen hidden></iframe>
-      <div id="pmsg" class="pmsg" hidden></div>
-    </div>
-    <div class="bar">
-      <div id="srvs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-      <a id="ext" class="btn" target="_blank" hidden>Direct ↗</a>
-    </div>
-  </div>
+<input id="search" class="search"
+placeholder="Search match or channel...">
+
+<div class="playerbox">
+ <video id="video" controls playsinline></video>
 </div>
 
+<div class="status" id="status">Loading sports data...</div>
+
+<div class="controls">
+ <select id="sourceSelect">
+  <option value="">Select Stream</option>
+ </select>
+
+ <select id="speed">
+  <option value="1">Speed 1x</option>
+  <option value="1.25">Speed 1.25x</option>
+  <option value="1.5">Speed 1.5x</option>
+  <option value="2">Speed 2x</option>
+ </select>
+
+ <button onclick="playSelected()">PLAY</button>
+</div>
+
+<h3 class="section-title">LIVE EVENTS</h3>
+<div id="events" class="grid"></div>
+
+<h3 class="section-title">TV CHANNELS</h3>
+<div id="channels" class="grid"></div>
+
+</div>
+
+<footer>MKS SPORTS • Universal Video Player</footer>
+
 <script>
-const EVENT_URL="https://rjson.snackonline223.workers.dev/events.json";
-const SYNC_URLS=[
-  "https://sonujson-v5.pages.dev/Data/sports.json",
-  "https://sonujson-v7.pages.dev/Data/sports.json"
+const JSON_URLS = [
+ "https://rjson.snackonline223.workers.dev/events.json",
+ "https://sonujson-v5.pages.dev/Data/sports.json",
+ "https://sonujson-v7.pages.dev/Data/sports.json"
 ];
-let list=[],tab="all",cur,pl,ui,globalToken="",$=id=>document.getElementById(id);
 
-function setTab(t){
-  tab=t;
-  $("bAll").className="btn"+(t=="all"?" play":"");
-  $("bLive").className="btn"+(t=="live"?" play":"");
-  render();
+const video = document.getElementById("video");
+const statusBox = document.getElementById("status");
+const sourceSelect = document.getElementById("sourceSelect");
+
+let allEvents = [];
+let allChannels = [];
+let currentHls = null;
+let currentDash = null;
+let selectedSources = [];
+
+function status(message){
+ statusBox.textContent = message;
 }
 
-function dec(v){
-  if(typeof v!="string")return"";
-  v=v.trim();
-  if(v.startsWith("aHR0c")){try{v=atob(v)}catch(e){}}
-  if(v.startsWith("https%3A")||v.startsWith("http%3A")){try{v=decodeURIComponent(v)}catch(e){}}
-  if(v.startsWith("//"))v="https:"+v;
-  return v;
-}
+// Fetch primary JSON, then backups
+async function loadData(){
 
-function toHex(s){
-  s=String(s||"").trim();
-  const clean=s.replace(/-/g,"");
-  if(/^[0-9a-fA-F]{32}$/.test(clean))return clean.toLowerCase();
+ for(const url of JSON_URLS){
   try{
-    const b64=s.replace(/-/g,"+").replace(/_/g,"/");
-    return[...atob(b64)].map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("");
-  }catch(e){return clean.toLowerCase()}
-}
+   status("Connecting to sports server...");
 
-function parseKeyPair(str){
-  let out={};
-  String(str).split(",").forEach(part=>{
-    let [k,v]=part.split(":");
-    if(k&&v)out[toHex(k)]=toHex(v);
-  });
-  return Object.keys(out).length?out:null;
-}
+   const response = await fetch(url,{
+    cache:"no-store"
+   });
 
-function getDrm(o){
-  if(!o||typeof o!="object")return null;
-  let raw=o.clearKeys||o.drm?.clearKeys||o.drm?.clearkeys;
-  if(!raw&&(o.drm?.keyId||o.drm?.kid)&&(o.drm?.key||o.drm?.k))raw={[o.drm.keyId||o.drm.kid]:o.drm.key||o.drm.k};
-  if(!raw&&(o.keyId||o.kid)&&(o.key||o.k))raw={[o.keyId||o.kid]:o.key||o.k};
-  let lic=o.drmLicense||o.clearkey||o.clearKey||o.license||o.drm?.license;
-  if(!raw&&typeof lic=="string"&&lic.includes(":"))return parseKeyPair(lic);
-  if(!raw)return null;
-  let out={};
-  for(const[k,v]of Object.entries(raw))if(k&&v)out[toHex(k)]=toHex(v);
-  return Object.keys(out).length?out:null;
-}
+   if(!response.ok) throw new Error("HTTP "+response.status);
 
-function getCookie(o){
-  if(!o||typeof o!="object")return"";
-  let c=o.cookie||o.Cookie||o.token||o.hdnea||o.headers?.Cookie||o.headers?.cookie||"";
-  let m=String(c).match(/(__hdnea__|hdnea|hdnts)=[^;\s"']+/i);
-  return m?m[0]:"";
-}
+   const data = await response.json();
 
-function cleanStream(rawUrl,drm,ck){
-  let [u,pipe]=rawUrl.split("|");
-  u=dec(u);
-  let tk=ck||"";
-  if(pipe){
-    let cm=pipe.match(/(__hdnea__|hdnea|hdnts)=[^&\s]+/i);
-    if(cm)tk=cm[0];
-    let dm=pipe.match(/drmLicense=([^&\s]+)/i);
-    if(dm&&!drm)drm=parseKeyPair(dm[1]);
+   if(Array.isArray(data.events)){
+    allEvents = data.events;
+   }
+
+   if(Array.isArray(data.channels)){
+    allChannels = data.channels;
+   }
+
+   if(!allEvents.length && !allChannels.length){
+    throw new Error("Invalid JSON structure");
+   }
+
+   status("Sports data loaded successfully");
+   render();
+   return;
+
+  }catch(error){
+   console.warn(url,error);
   }
-  let um=u.match(/(__hdnea__|hdnea|hdnts)=[^&\s]+/i);
-  if(!tk&&um)tk=um[0];
-  if(!tk&&globalToken&&/akamai|cloudfront|jiotv|sonyliv|tataplay|willow|fancode|hotstar|discovery|zee5|star/i.test(u))tk=globalToken;
-  if(tk){
-    if(/(__hdnea__|hdnea|hdnts)=/i.test(u))u=u.replace(/(__hdnea__|hdnea|hdnts)=[^&]+/i,tk);
-    else u+=(u.includes("?")?"&":"?")+tk;
-  }
-  return{u,d:drm,tk};
+ }
+
+ status("All JSON servers failed. Please try again.");
 }
 
-function getStreams(root){
-  let out=[],seen=new Set(),rootDrm=getDrm(root),rootCk=getCookie(root);
-  const skipKey=/banner|poster|image|thumb|logo|icon|avatar|flag|bg|cookie|token/i;
-  const skipExt=/\.(jpg|jpeg|png|webp|gif|svg|ico)(\?|$)/i;
-  function walk(node,label,pDrm,pCk){
-    if(!node)return;
-    if(typeof node=="string"){
-      let raw=dec(node);
-      if(raw.startsWith("http")&&!skipExt.test(raw.split("|")[0])){
-        let {u,d,tk}=cleanStream(raw,pDrm||rootDrm,pCk||rootCk);
-        if(!seen.has(u)){
-          seen.add(u);
-          let tag=/\.mpd(\?|$)/i.test(u)?" [MPD]":"";
-          let n=(label&&!/^(url|link|src|stream|m3u8|mpd|0|1|2|3)$/i.test(label))?label.replace(/_/g," ").toUpperCase():"Server "+(out.length+1);
-          out.push({n:n+tag,u,d,tk});
-        }
-      }
-      return;
-    }
-    if(Array.isArray(node)){node.forEach((v,i)=>walk(v,v?.name||v?.title||v?.lang||("Server "+(i+1)),pDrm,pCk));return}
-    if(typeof node=="object"){
-      let d=getDrm(node)||pDrm,ck=getCookie(node)||pCk;
-      let own=node.name||node.title||node.label||node.lang||label;
-      for(const[k,v]of Object.entries(node))if(!skipKey.test(k))walk(v,typeof v=="string"?(node.name||node.title||k):own,d,ck);
-    }
-  }
-  walk(root,"",rootDrm,rootCk);
-  return out;
+// Normalize stream sources
+function getSources(item){
+
+ if(Array.isArray(item.sources)){
+  return item.sources;
+ }
+
+ if(item.stream_url){
+  return [item];
+ }
+
+ return [];
 }
 
-const toArr=j=>!j?[]:Array.isArray(j)?j:(j.events||j.matches||j.data||j.channels||j.live||Object.values(j).find(Array.isArray)||[]);
+function getType(source){
 
-async function fetchJ(u){
-  try{const r=await fetch(u,{cache:"no-store"});return r.ok?await r.json():null}catch(e){return null}
-}
+ const url = (source.stream_url || "").toLowerCase();
+ const type = (source.sourcetype || "").toLowerCase();
 
-async function loadFeed(){
-  $("grid").innerHTML="Loading...";
-  let evJson=await fetchJ(EVENT_URL),syncJson=null;
-  for(const u of SYNC_URLS){syncJson=await fetchJ(u);if(syncJson)break}
-  if(syncJson){
-    let m=JSON.stringify(syncJson).match(/(__hdnea__|hdnea|hdnts)=[^"'&\s\\]+/i);
-    if(m)globalToken=m[0];
-  }
-  const mapItem=(x,idx)=>({
-    id:String(x.id||x.match_id||x.channel_id||idx),
-    t:x.title||x.match_name||x.event_name||x.name||"Match "+(idx+1),
-    g:x.tournament||x.league||x.event_category||x.category||"Sports",
-    img:dec(x.banner||x.poster||x.image||x.thumb||x.logo||x.src||""),
-    lv:/live/i.test(String(x.status||""))||x.is_live===true||x.live===true,
-    st:getStreams(x)
-  });
+ if(type.includes("m3u8") || url.includes(".m3u8")){
+  return "hls";
+ }
 
-  let evList=toArr(evJson).map((x,i)=>mapItem(x,"e"+i));
-  let syList=toArr(syncJson).map((x,i)=>mapItem(x,"s"+i));
+ if(type.includes("mpd") || url.includes(".mpd")){
+  return "dash";
+ }
 
-  syList.forEach(s=>{
-    let hit=evList.find(e=>e.id===s.id||e.t.toLowerCase()===s.t.toLowerCase());
-    if(hit){hit.st.push(...s.st);if(s.st.length)hit.lv=true}
-    else if(s.st.length){s.lv=true;evList.push(s)}
-  });
+ if(url.includes(".mp4")){
+  return "mp4";
+ }
 
-  evList.sort((a,b)=>(b.st.length>0)-(a.st.length>0));
-  list=evList.map((x,i)=>({...x,i}));
-  list.length?render():($("grid").innerHTML="Feed load nahi hua. Refresh dabao.");
+ return "unknown";
 }
 
 function render(){
-  const q=$("q").value.toLowerCase();
-  const f=list.filter(m=>(tab!="live"||m.lv||m.st.length>0)&&(m.t+" "+m.g).toLowerCase().includes(q));
-  $("grid").innerHTML=f.length?f.map(m=>`<div class="card" onclick="openP(${m.i})">${m.img?`<img src="${m.img}" onerror="this.remove()">`:""}<div class="info"><h3>${m.t}</h3><small>${m.g}</small><div class="row"><span class="${m.st.length||m.lv?"live":"up"}">${m.st.length?"● LIVE ("+m.st.length+")":m.lv?"● LIVE":"UPCOMING"}</span><span class="btn ${m.st.length?"play":"dim"}">${m.st.length?"▶ Watch":"Soon"}</span></div></div></div>`).join(""):"Koi match nahi mila.";
+
+ const eventsBox = document.getElementById("events");
+ const channelsBox = document.getElementById("channels");
+
+ eventsBox.innerHTML = "";
+ channelsBox.innerHTML = "";
+
+ allEvents.forEach((event,index)=>{
+
+  const div = document.createElement("div");
+  div.className="item";
+
+  const title=document.createElement("strong");
+  title.textContent=event.name || "Live Event";
+
+  const info=document.createElement("small");
+  info.textContent=
+   (event.type || "SPORTS")+" • "+
+   getSources(event).length+" Sources";
+
+  div.append(title,info);
+
+  div.onclick=()=>showSources(event);
+
+  eventsBox.appendChild(div);
+ });
+
+ allChannels.forEach(channel=>{
+
+  const div=document.createElement("div");
+  div.className="item";
+
+  const title=document.createElement("strong");
+  title.textContent=channel.name || "TV Channel";
+
+  const info=document.createElement("small");
+  info.textContent="TV CHANNEL";
+
+  div.append(title,info);
+
+  div.onclick=()=>showSources(channel);
+
+  channelsBox.appendChild(div);
+ });
 }
 
-async function stopV(){
-  $("vid").pause();$("vid").removeAttribute("src");
-  if(ui){await ui.destroy();ui=null}
-  if(pl){await pl.destroy();pl=null}
+// Select event/channel sources
+function showSources(item){
+
+ selectedSources=getSources(item);
+
+ sourceSelect.innerHTML="";
+
+ selectedSources.forEach((source,index)=>{
+
+  const option=document.createElement("option");
+
+  option.value=index;
+
+  option.textContent=
+   source.name || ("Source "+(index+1));
+
+  sourceSelect.appendChild(option);
+ });
+
+ if(selectedSources.length){
+  playSelected();
+ }else{
+  status("No streams available");
+ }
 }
 
-function openP(i){
-  cur=list[i];$("ptitle").textContent=cur.t;$("modal").hidden=false;
-  if(!cur.st.length){
-    $("sbox").hidden=true;$("ifr").hidden=true;$("srvs").innerHTML="";$("ext").hidden=true;
-    $("pmsg").textContent="Match abhi start nahi hua hai. Live hone par Refresh karein.";
-    $("pmsg").hidden=false;return;
-  }
-  $("srvs").innerHTML=cur.st.map((s,k)=>`<button class="btn srv ${k?"":"on"}" onclick="play(${k},false)">${s.n}</button>`).join("");
-  play(0,true);
+// Player
+function playSelected(){
+
+ const index=Number(sourceSelect.value || 0);
+ const source=selectedSources[index];
+
+ if(!source){
+  status("Please select a source");
+  return;
+ }
+
+ playStream(source.stream_url);
 }
 
-async function play(k,autoNext){
-  const s=cur.st[k],btns=document.querySelectorAll(".srv");
-  btns.forEach((b,i)=>b.classList.toggle("on",i==k));
-  $("ext").href=s.u;$("ext").hidden=false;
-  await stopV();
-  $("sbox").hidden=true;$("ifr").hidden=true;
-  $("pmsg").textContent=s.n+" load ho raha hai...";$("pmsg").hidden=false;
+function destroyPlayers(){
 
-  if(!/\.(m3u8|mpd|mp4)(\?|$)/i.test(s.u)&&/embed|player|\.html|\.php/i.test(s.u)){
-    $("ifr").hidden=false;$("ifr").src=s.u;$("pmsg").hidden=true;return;
-  }
+ if(currentHls){
+  currentHls.destroy();
+  currentHls=null;
+ }
 
-  $("ifr").src="about:blank";$("sbox").hidden=false;
-  const v=$("vid");
-  if(window.shaka&&shaka.Player.isBrowserSupported()){
-    shaka.polyfill.installAll();
-    pl=new shaka.Player();
-    await pl.attach(v);
-    ui=new shaka.ui.Overlay(pl,$("sbox"),v);
+ if(currentDash){
+  currentDash.reset();
+  currentDash=null;
+ }
 
-    // Har .mpd aur .m4s segment ke saath token forward karne ke liye
-    pl.getNetworkingEngine().registerRequestFilter((type,req)=>{
-      if(s.tk){
-        req.uris=req.uris.map(u=>{
-          if(/(__hdnea__|hdnea|hdnts)=/i.test(u))return u.replace(/(__hdnea__|hdnea|hdnts)=[^&]+/i,s.tk);
-          return u+(u.includes("?")?"&":"?")+s.tk;
-        });
-      }
-    });
+ video.pause();
+ video.removeAttribute("src");
+ video.load();
+}
 
-    let cfg={
-      streaming:{ignoreTextStreamFailures:true,retryParameters:{maxAttempts:2,timeout:7000}},
-      manifest:{retryParameters:{maxAttempts:2,timeout:7000}}
-    };
-    if(s.d)cfg.drm={clearKeys:s.d};
-    pl.configure(cfg);
+function playStream(url){
 
-    try{
-      await pl.load(s.u);
-      $("pmsg").hidden=true;
-      v.muted=false;
-      v.play().catch(()=>{v.muted=true;v.play().catch(()=>{})});
-    }catch(e){
-      btns[k]?.classList.add("bad");
-      let code=e?.code||"";
-      if(autoNext&&k+1<cur.st.length){
-        $("pmsg").textContent=s.n+" fail ("+code+"), "+cur.st[k+1].n+" try kar rahe hain...";
-        setTimeout(()=>play(k+1,true),450);
-      }else{
-        $("sbox").hidden=true;
-        $("pmsg").textContent="Stream fail ("+code+"). Dusra server select karein ya Direct ↗ try karein.";
-      }
+ if(!url){
+  status("Invalid stream URL");
+  return;
+ }
+
+ destroyPlayers();
+
+ const type=getType({stream_url:url});
+
+ status("Connecting to stream...");
+
+ if(type==="hls"){
+
+  if(Hls.isSupported()){
+
+   currentHls=new Hls();
+
+   currentHls.loadSource(url);
+   currentHls.attachMedia(video);
+
+   currentHls.on(Hls.Events.MANIFEST_PARSED,()=>{
+    status("HLS stream ready");
+    video.play().catch(()=>{});
+   });
+
+   currentHls.on(Hls.Events.ERROR,(event,data)=>{
+    if(data.fatal){
+     status("HLS playback failed: "+data.type);
     }
-  }else{v.src=s.u;$("pmsg").hidden=true}
+   });
+
+  }else if(video.canPlayType("application/vnd.apple.mpegurl")){
+
+   video.src=url;
+   video.play().catch(()=>{});
+   status("Native HLS playback");
+
+  }else{
+   status("HLS not supported on this browser");
+  }
+
+ }
+
+ else if(type==="dash"){
+
+  currentDash=dashjs.MediaPlayer().create();
+
+  currentDash.initialize(video,url,true);
+
+  currentDash.on(
+   dashjs.MediaPlayer.events.STREAM_INITIALIZED,
+   ()=>{
+    status("DASH stream ready");
+   }
+  );
+
+  currentDash.on(
+   dashjs.MediaPlayer.events.ERROR,
+   ()=>{
+    status("DASH playback failed. Check stream access and DRM.");
+   }
+  );
+
+ }
+
+ else if(type==="mp4"){
+
+  video.src=url;
+  video.play().catch(()=>{});
+  status("MP4 playback");
+
+ }
+
+ else{
+  status("Unsupported or unknown stream format");
+ }
 }
 
-async function closeP(){
-  await stopV();
-  $("ifr").src="about:blank";
-  $("modal").hidden=true;
-}
+// Playback speed
+document.getElementById("speed").onchange=function(){
+ video.playbackRate=Number(this.value);
+};
 
-loadFeed();
+// Search
+document.getElementById("search").addEventListener("input",function(){
+
+ const query=this.value.toLowerCase();
+
+ document.querySelectorAll(".item").forEach(item=>{
+  item.style.display=
+   item.textContent.toLowerCase().includes(query)
+   ? "" : "none";
+ });
+});
+
+// Start
+loadData();
+
 </script>
 </body>
 </html>
