@@ -36,7 +36,6 @@ main{max-width:1000px;margin:auto;padding:14px}
 .bar{padding:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 .srv.on{background:#ff7b3d;color:#000}
 .srv.bad{opacity:.45;text-decoration:line-through}
-/* Ajeeb timestamp aur seekbar hide */
 .shaka-seek-bar-container,.shaka-current-time{display:none!important}
 </style>
 </head>
@@ -82,7 +81,7 @@ const SYNC_URLS=[
   "https://sonujson-v5.pages.dev/Data/sports.json",
   "https://sonujson-v7.pages.dev/Data/sports.json"
 ];
-let list=[],tab="all",cur,pl,ui,token="",$=id=>document.getElementById(id);
+let list=[],tab="all",cur,pl,ui,globalToken="",$=id=>document.getElementById(id);
 
 function setTab(t){
   tab=t;
@@ -100,61 +99,92 @@ function dec(v){
   return v;
 }
 
-const toHex=s=>/^[0-9a-fA-F]+$/.test(s)?s:[...atob(s.replace(/-/g,"+").replace(/_/g,"/"))].map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("");
+function toHex(s){
+  s=String(s||"").trim();
+  const clean=s.replace(/-/g,"");
+  if(/^[0-9a-fA-F]{32}$/.test(clean))return clean.toLowerCase();
+  try{
+    const b64=s.replace(/-/g,"+").replace(/_/g,"/");
+    return[...atob(b64)].map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("");
+  }catch(e){return clean.toLowerCase()}
+}
+
+function parseKeyPair(str){
+  let out={};
+  String(str).split(",").forEach(part=>{
+    let [k,v]=part.split(":");
+    if(k&&v)out[toHex(k)]=toHex(v);
+  });
+  return Object.keys(out).length?out:null;
+}
 
 function getDrm(o){
   if(!o||typeof o!="object")return null;
-  let raw=o.clearKeys||o.drm?.clearKeys||(o.drm?.keyId&&o.drm?.key?{[o.drm.keyId]:o.drm.key}:null)||(o.keyId&&o.key?{[o.keyId]:o.key}:null)||(o.kid&&o.k?{[o.kid]:o.k}:null);
-  let lic=o.drmLicense||o.clearkey||o.license;
-  if(!raw&&typeof lic=="string"&&lic.includes(":")){let p=lic.split(":");raw={[p[0].trim()]:p[1].trim()}}
+  let raw=o.clearKeys||o.drm?.clearKeys||o.drm?.clearkeys;
+  if(!raw&&(o.drm?.keyId||o.drm?.kid)&&(o.drm?.key||o.drm?.k))raw={[o.drm.keyId||o.drm.kid]:o.drm.key||o.drm.k};
+  if(!raw&&(o.keyId||o.kid)&&(o.key||o.k))raw={[o.keyId||o.kid]:o.key||o.k};
+  let lic=o.drmLicense||o.clearkey||o.clearKey||o.license||o.drm?.license;
+  if(!raw&&typeof lic=="string"&&lic.includes(":"))return parseKeyPair(lic);
   if(!raw)return null;
   let out={};
-  for(const[k,v]of Object.entries(raw)){try{out[toHex(k)]=toHex(v)}catch(e){out[k]=v}}
-  return out;
+  for(const[k,v]of Object.entries(raw))if(k&&v)out[toHex(k)]=toHex(v);
+  return Object.keys(out).length?out:null;
 }
 
-function cleanStream(rawUrl,drm){
+function getCookie(o){
+  if(!o||typeof o!="object")return"";
+  let c=o.cookie||o.Cookie||o.token||o.hdnea||o.headers?.Cookie||o.headers?.cookie||"";
+  let m=String(c).match(/(__hdnea__|hdnea|hdnts)=[^;\s"']+/i);
+  return m?m[0]:"";
+}
+
+function cleanStream(rawUrl,drm,ck){
   let [u,pipe]=rawUrl.split("|");
   u=dec(u);
-  let tk=token;
+  let tk=ck||"";
   if(pipe){
-    let cm=pipe.match(/(__hdnea__|hdnea)=[^&\s]+/);
+    let cm=pipe.match(/(__hdnea__|hdnea|hdnts)=[^&\s]+/i);
     if(cm)tk=cm[0];
     let dm=pipe.match(/drmLicense=([^&\s]+)/i);
-    if(dm&&!drm&&dm[1].includes(":")){let p=dm[1].split(":");drm={[toHex(p[0])]:toHex(p[1])}}
+    if(dm&&!drm)drm=parseKeyPair(dm[1]);
   }
+  let um=u.match(/(__hdnea__|hdnea|hdnts)=[^&\s]+/i);
+  if(!tk&&um)tk=um[0];
+  if(!tk&&globalToken&&/akamai|cloudfront|jiotv|sonyliv|tataplay|willow|fancode|hotstar|discovery|zee5|star/i.test(u))tk=globalToken;
   if(tk){
-    if(/(__hdnea__|hdnea)=/.test(u))u=u.replace(/(__hdnea__|hdnea)=[^&]+/,tk);
-    else if(/fancode|sonyliv|jiocinema|hotstar|akamai|cloudfront/i.test(u))u+=(u.includes("?")?"&":"?")+tk;
+    if(/(__hdnea__|hdnea|hdnts)=/i.test(u))u=u.replace(/(__hdnea__|hdnea|hdnts)=[^&]+/i,tk);
+    else u+=(u.includes("?")?"&":"?")+tk;
   }
-  return{u,d:drm};
+  return{u,d:drm,tk};
 }
 
 function getStreams(root){
-  let out=[],seen=new Set(),rootDrm=getDrm(root);
-  const skipKey=/banner|poster|image|thumb|logo|icon|avatar|flag|bg/i;
+  let out=[],seen=new Set(),rootDrm=getDrm(root),rootCk=getCookie(root);
+  const skipKey=/banner|poster|image|thumb|logo|icon|avatar|flag|bg|cookie|token/i;
   const skipExt=/\.(jpg|jpeg|png|webp|gif|svg|ico)(\?|$)/i;
-  function walk(node,label,pDrm){
+  function walk(node,label,pDrm,pCk){
     if(!node)return;
     if(typeof node=="string"){
       let raw=dec(node);
       if(raw.startsWith("http")&&!skipExt.test(raw.split("|")[0])){
-        let {u,d}=cleanStream(raw,pDrm||rootDrm);
+        let {u,d,tk}=cleanStream(raw,pDrm||rootDrm,pCk||rootCk);
         if(!seen.has(u)){
           seen.add(u);
+          let tag=/\.mpd(\?|$)/i.test(u)?" [MPD]":"";
           let n=(label&&!/^(url|link|src|stream|m3u8|mpd|0|1|2|3)$/i.test(label))?label.replace(/_/g," ").toUpperCase():"Server "+(out.length+1);
-          out.push({n,u,d});
+          out.push({n:n+tag,u,d,tk});
         }
       }
       return;
     }
-    if(Array.isArray(node)){node.forEach((v,i)=>walk(v,v?.name||v?.title||v?.lang||("Server "+(i+1)),pDrm));return}
+    if(Array.isArray(node)){node.forEach((v,i)=>walk(v,v?.name||v?.title||v?.lang||("Server "+(i+1)),pDrm,pCk));return}
     if(typeof node=="object"){
-      let d=getDrm(node)||pDrm,own=node.name||node.title||node.label||node.lang||label;
-      for(const[k,v]of Object.entries(node))if(!skipKey.test(k))walk(v,typeof v=="string"?(node.name||node.title||k):own,d);
+      let d=getDrm(node)||pDrm,ck=getCookie(node)||pCk;
+      let own=node.name||node.title||node.label||node.lang||label;
+      for(const[k,v]of Object.entries(node))if(!skipKey.test(k))walk(v,typeof v=="string"?(node.name||node.title||k):own,d,ck);
     }
   }
-  walk(root,"",rootDrm);
+  walk(root,"",rootDrm,rootCk);
   return out;
 }
 
@@ -169,8 +199,8 @@ async function loadFeed(){
   let evJson=await fetchJ(EVENT_URL),syncJson=null;
   for(const u of SYNC_URLS){syncJson=await fetchJ(u);if(syncJson)break}
   if(syncJson){
-    let m=JSON.stringify(syncJson).match(/(__hdnea__|hdnea)=[^"'&\s\\]+/);
-    if(m)token=m[0];
+    let m=JSON.stringify(syncJson).match(/(__hdnea__|hdnea|hdnts)=[^"'&\s\\]+/i);
+    if(m)globalToken=m[0];
   }
   const mapItem=(x,idx)=>({
     id:String(x.id||x.match_id||x.channel_id||idx),
@@ -237,11 +267,24 @@ async function play(k,autoNext){
     pl=new shaka.Player();
     await pl.attach(v);
     ui=new shaka.ui.Overlay(pl,$("sbox"),v);
-    pl.configure({
+
+    // Har .mpd aur .m4s segment ke saath token forward karne ke liye
+    pl.getNetworkingEngine().registerRequestFilter((type,req)=>{
+      if(s.tk){
+        req.uris=req.uris.map(u=>{
+          if(/(__hdnea__|hdnea|hdnts)=/i.test(u))return u.replace(/(__hdnea__|hdnea|hdnts)=[^&]+/i,s.tk);
+          return u+(u.includes("?")?"&":"?")+s.tk;
+        });
+      }
+    });
+
+    let cfg={
       streaming:{ignoreTextStreamFailures:true,retryParameters:{maxAttempts:2,timeout:7000}},
       manifest:{retryParameters:{maxAttempts:2,timeout:7000}}
-    });
-    if(s.d)pl.configure({drm:{clearKeys:s.d}});
+    };
+    if(s.d)cfg.drm={clearKeys:s.d};
+    pl.configure(cfg);
+
     try{
       await pl.load(s.u);
       $("pmsg").hidden=true;
@@ -249,12 +292,13 @@ async function play(k,autoNext){
       v.play().catch(()=>{v.muted=true;v.play().catch(()=>{})});
     }catch(e){
       btns[k]?.classList.add("bad");
+      let code=e?.code||"";
       if(autoNext&&k+1<cur.st.length){
-        $("pmsg").textContent=s.n+" offline hai, "+cur.st[k+1].n+" try kar rahe hain...";
-        setTimeout(()=>play(k+1,true),400);
+        $("pmsg").textContent=s.n+" fail ("+code+"), "+cur.st[k+1].n+" try kar rahe hain...";
+        setTimeout(()=>play(k+1,true),450);
       }else{
         $("sbox").hidden=true;
-        $("pmsg").textContent="Ye server abhi offline/blocked hai. Upar se dusra server select karein.";
+        $("pmsg").textContent="Stream fail ("+code+"). Dusra server select karein ya Direct ↗ try karein.";
       }
     }
   }else{v.src=s.u;$("pmsg").hidden=true}
