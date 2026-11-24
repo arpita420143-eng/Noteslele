@@ -32,8 +32,12 @@ main{max-width:1000px;margin:auto;padding:14px}
 .stage{position:relative;aspect-ratio:16/9;background:#000}
 .stage video,.stage iframe,.shaka-video-container{width:100%;height:100%;border:0}
 .pmsg{position:absolute;inset:0;z-index:25;display:grid;place-items:center;background:#0b0f19;padding:16px;text-align:center;font-size:14px;color:#cbd5e1}.pmsg[hidden]{display:none}
+.live-tag{position:absolute;top:10px;left:10px;z-index:20;background:#ef4444;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;pointer-events:none}
 .bar{padding:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 .srv.on{background:#ff7b3d;color:#000}
+.srv.bad{opacity:.45;text-decoration:line-through}
+/* Ajeeb timestamp aur seekbar hide */
+.shaka-seek-bar-container,.shaka-current-time{display:none!important}
 </style>
 </head>
 <body>
@@ -58,6 +62,7 @@ main{max-width:1000px;margin:auto;padding:14px}
   <div class="box">
     <div class="bar"><b id="ptitle">MKS SPORTS</b><button class="btn" onclick="closeP()">✕</button></div>
     <div class="stage">
+      <span class="live-tag">● LIVE</span>
       <div id="sbox" class="shaka-video-container" data-shaka-player-container>
         <video id="vid" autoplay playsinline data-shaka-player></video>
       </div>
@@ -95,15 +100,34 @@ function dec(v){
   return v;
 }
 
+const toHex=s=>/^[0-9a-fA-F]+$/.test(s)?s:[...atob(s.replace(/-/g,"+").replace(/_/g,"/"))].map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("");
+
 function getDrm(o){
   if(!o||typeof o!="object")return null;
-  if(o.clearKeys)return o.clearKeys;
-  if(o.drm?.clearKeys)return o.drm.clearKeys;
-  if(o.drm?.keyId&&o.drm?.key)return{[o.drm.keyId]:o.drm.key};
-  if(o.keyId&&o.key)return{[o.keyId]:o.key};
-  if(o.kid&&o.k)return{[o.kid]:o.k};
-  if(typeof o.drmLicense=="string"&&o.drmLicense.includes(":")){let p=o.drmLicense.split(":");return{[p[0].trim()]:p[1].trim()}}
-  return null;
+  let raw=o.clearKeys||o.drm?.clearKeys||(o.drm?.keyId&&o.drm?.key?{[o.drm.keyId]:o.drm.key}:null)||(o.keyId&&o.key?{[o.keyId]:o.key}:null)||(o.kid&&o.k?{[o.kid]:o.k}:null);
+  let lic=o.drmLicense||o.clearkey||o.license;
+  if(!raw&&typeof lic=="string"&&lic.includes(":")){let p=lic.split(":");raw={[p[0].trim()]:p[1].trim()}}
+  if(!raw)return null;
+  let out={};
+  for(const[k,v]of Object.entries(raw)){try{out[toHex(k)]=toHex(v)}catch(e){out[k]=v}}
+  return out;
+}
+
+function cleanStream(rawUrl,drm){
+  let [u,pipe]=rawUrl.split("|");
+  u=dec(u);
+  let tk=token;
+  if(pipe){
+    let cm=pipe.match(/(__hdnea__|hdnea)=[^&\s]+/);
+    if(cm)tk=cm[0];
+    let dm=pipe.match(/drmLicense=([^&\s]+)/i);
+    if(dm&&!drm&&dm[1].includes(":")){let p=dm[1].split(":");drm={[toHex(p[0])]:toHex(p[1])}}
+  }
+  if(tk){
+    if(/(__hdnea__|hdnea)=/.test(u))u=u.replace(/(__hdnea__|hdnea)=[^&]+/,tk);
+    else if(/fancode|sonyliv|jiocinema|hotstar|akamai|cloudfront/i.test(u))u+=(u.includes("?")?"&":"?")+tk;
+  }
+  return{u,d:drm};
 }
 
 function getStreams(root){
@@ -113,13 +137,13 @@ function getStreams(root){
   function walk(node,label,pDrm){
     if(!node)return;
     if(typeof node=="string"){
-      let u=dec(node);
-      if(u.startsWith("http")&&!skipExt.test(u)){
-        if(token&&/(__hdnea__|hdnea)=/.test(u))u=u.replace(/(__hdnea__|hdnea)=[^&]+/,token);
+      let raw=dec(node);
+      if(raw.startsWith("http")&&!skipExt.test(raw.split("|")[0])){
+        let {u,d}=cleanStream(raw,pDrm||rootDrm);
         if(!seen.has(u)){
           seen.add(u);
           let n=(label&&!/^(url|link|src|stream|m3u8|mpd|0|1|2|3)$/i.test(label))?label.replace(/_/g," ").toUpperCase():"Server "+(out.length+1);
-          out.push({n,u,d:pDrm||rootDrm});
+          out.push({n,u,d});
         }
       }
       return;
@@ -190,33 +214,50 @@ function openP(i){
     $("pmsg").textContent="Match abhi start nahi hua hai. Live hone par Refresh karein.";
     $("pmsg").hidden=false;return;
   }
-  $("srvs").innerHTML=cur.st.map((s,k)=>`<button class="btn srv ${k?"":"on"}" onclick="play(${k})">${s.n}</button>`).join("");
-  play(0);
+  $("srvs").innerHTML=cur.st.map((s,k)=>`<button class="btn srv ${k?"":"on"}" onclick="play(${k},false)">${s.n}</button>`).join("");
+  play(0,true);
 }
 
-async function play(k){
-  const s=cur.st[k];
-  document.querySelectorAll(".srv").forEach((b,i)=>b.classList.toggle("on",i==k));
+async function play(k,autoNext){
+  const s=cur.st[k],btns=document.querySelectorAll(".srv");
+  btns.forEach((b,i)=>b.classList.toggle("on",i==k));
   $("ext").href=s.u;$("ext").hidden=false;
   await stopV();
   $("sbox").hidden=true;$("ifr").hidden=true;
-  $("pmsg").textContent="Stream load ho raha hai...";$("pmsg").hidden=false;
+  $("pmsg").textContent=s.n+" load ho raha hai...";$("pmsg").hidden=false;
+
   if(!/\.(m3u8|mpd|mp4)(\?|$)/i.test(s.u)&&/embed|player|\.html|\.php/i.test(s.u)){
     $("ifr").hidden=false;$("ifr").src=s.u;$("pmsg").hidden=true;return;
   }
+
   $("ifr").src="about:blank";$("sbox").hidden=false;
+  const v=$("vid");
   if(window.shaka&&shaka.Player.isBrowserSupported()){
     shaka.polyfill.installAll();
     pl=new shaka.Player();
-    await pl.attach($("vid"));
-    ui=new shaka.ui.Overlay(pl,$("sbox"),$("vid"));
+    await pl.attach(v);
+    ui=new shaka.ui.Overlay(pl,$("sbox"),v);
+    pl.configure({
+      streaming:{ignoreTextStreamFailures:true,retryParameters:{maxAttempts:2,timeout:7000}},
+      manifest:{retryParameters:{maxAttempts:2,timeout:7000}}
+    });
     if(s.d)pl.configure({drm:{clearKeys:s.d}});
-    try{await pl.load(s.u);$("pmsg").hidden=true;$("vid").play().catch(()=>{})}
-    catch(e){
-      if($("vid").canPlayType("application/vnd.apple.mpegurl")){$("vid").src=s.u;$("pmsg").hidden=true}
-      else{$("sbox").hidden=true;$("pmsg").textContent="Stream error. Dusra server ya Direct ↗ try karo."}
+    try{
+      await pl.load(s.u);
+      $("pmsg").hidden=true;
+      v.muted=false;
+      v.play().catch(()=>{v.muted=true;v.play().catch(()=>{})});
+    }catch(e){
+      btns[k]?.classList.add("bad");
+      if(autoNext&&k+1<cur.st.length){
+        $("pmsg").textContent=s.n+" offline hai, "+cur.st[k+1].n+" try kar rahe hain...";
+        setTimeout(()=>play(k+1,true),400);
+      }else{
+        $("sbox").hidden=true;
+        $("pmsg").textContent="Ye server abhi offline/blocked hai. Upar se dusra server select karein.";
+      }
     }
-  }else{$("vid").src=s.u;$("pmsg").hidden=true}
+  }else{v.src=s.u;$("pmsg").hidden=true}
 }
 
 async function closeP(){
